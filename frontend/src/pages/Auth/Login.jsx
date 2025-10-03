@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { login } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext"; // ✅ use AuthContext
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth(); // ✅ get login function from context
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -25,7 +26,7 @@ const Login = () => {
     setSuccess("");
 
     try {
-      const res = await login(formData);
+      const res = await login(formData); // ✅ use context login()
       setSuccess("Login successful! Redirecting...");
       setTimeout(() => navigate("/dashboard"), 1500); // redirect to home/dashboard
     } catch (err) {
