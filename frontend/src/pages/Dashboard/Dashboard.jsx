@@ -1,18 +1,172 @@
-// src/pages/Dashboard/Dashboard.jsx
-import { useAuth } from "../../context/AuthContext";
+import { useEffect, useState } from "react";
+import { getNotes } from "../../services/notesService";
+import NotesList from "./NotesList";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchNotes = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getNotes();
+      setNotes(Array.isArray(data) ? data : data.notes || []);
+    } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          "Could not fetch notes. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    // Clear auth tokens or session here
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-900 to-fuchsia-900 text-white">
-      <h1 className="text-4xl font-bold mb-4">Welcome, User</h1>
-      <button
-        onClick={logout}
-        className="rounded-lg bg-fuchsia-600 px-6 py-3 font-semibold hover:bg-fuchsia-700 transition"
-      >
-        Logout
-      </button>
+    // use w-full + min-w-0 and ensure overflow-x-hidden to prevent horizontal scrollbar
+    <div className="min-h-screen w-full min-w-0 overflow-x-hidden box-border bg-gradient-to-br from-indigo-950 via-purple-950 to-fuchsia-900">
+      {/* Decorative background elements - FIXED to viewport (clipped by overflow-hidden) */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        {/* positioned shapes kept within the fixed container so they won't cause horizontal scroll */}
+        <div className="absolute -top-24 left-0 h-72 w-72 rounded-full bg-fuchsia-400/10 blur-3xl translate-x-[-6rem] sm:translate-x-0" />
+        <div className="absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl translate-x-[6rem] sm:translate-x-0" />
+        <div className="absolute top-1/3 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rotate-12 rounded-3xl bg-gradient-to-tr from-purple-300/10 to-transparent blur-2xl" />
+      </div>
+
+      <div className="relative z-10 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          {/* Header */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <h1 className="bg-gradient-to-r from-fuchsia-300 via-violet-200 to-indigo-200 bg-clip-text text-3xl sm:text-4xl font-extrabold tracking-tight text-transparent">
+                Your Notes
+              </h1>
+              <p className="text-sm sm:text-base text-white/70">
+                Organize your thoughts beautifully
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => navigate("/notes/new")}
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-white shadow-lg transition duration-200 ease-out hover:shadow-[0_10px_30px_-10px_rgba(168,85,247,0.6)] focus:outline-none"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  New Note
+                </span>
+                <span className="absolute inset-0 -translate-x-full bg-white/20 transition group-hover:translate-x-0" />
+              </button>
+
+              <button
+                onClick={fetchNotes}
+                className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/10 hover:border-white/30"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-4 w-4"
+                >
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 hover:border-red-500/50"
+              >
+                <span className="flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5"
+                  >
+                    <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+                  </svg>
+                  Logout
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="rounded-3xl bg-white/5 backdrop-blur-xl p-4 sm:p-6 ring-1 ring-white/10">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="flex items-center gap-3 text-white/70">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-fuchsia-400 border-t-transparent" />
+                  <span>Loading your notes...</span>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-6 w-6 text-red-400"
+                  >
+                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <p className="text-red-300">{error}</p>
+              </div>
+            ) : notes.length === 0 ? (
+              <div className="py-16 text-center">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500/20 to-violet-500/20">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-10 w-10 text-fuchsia-400"
+                  >
+                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                </div>
+                <h3 className="mb-2 text-xl font-semibold text-white">
+                  No notes yet
+                </h3>
+                <p className="mb-6 text-white/70">
+                  Start creating your first note to get organized
+                </p>
+                <button
+                  onClick={() => navigate("/notes/new")}
+                  className="rounded-xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500 px-6 py-3 font-semibold text-white shadow-lg transition hover:shadow-[0_10px_30px_-10px_rgba(168,85,247,0.6)]"
+                >
+                  Create Your First Note
+                </button>
+              </div>
+            ) : (
+              <NotesList notes={notes} onRefresh={fetchNotes} />
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
