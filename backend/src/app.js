@@ -1,6 +1,7 @@
 // src/app.js
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors";
 
 import { requestLogger } from "./middlewares/pinoMiddleware.js";
 import requestIdMiddleware from "./middlewares/requestId.js";
@@ -14,6 +15,12 @@ import notesRoutes from "./routes/notesRoutes.js";
 dotenv.config();
 
 const app = express();
+
+// ✅ Enable CORS for frontend (React Vite default: http://localhost:5173)
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true, // allow cookies/auth headers if needed
+}));
 
 // Logging (pino-http)
 app.use(requestLogger);
