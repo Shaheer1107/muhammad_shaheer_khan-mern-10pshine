@@ -1,4 +1,3 @@
-// src/pages/Auth/Signup.jsx
 import { useState } from "react";
 import { signup } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
