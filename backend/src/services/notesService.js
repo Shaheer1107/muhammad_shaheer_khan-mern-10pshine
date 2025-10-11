@@ -11,6 +11,7 @@ function normalizePayload(payload = {}) {
   const contentHtml = payload.contentHtml ?? payload.content ?? "";
   const contentJson = payload.contentJson ?? null;
   let plainText = payload.plainText ?? "";
+  const attachments = Array.isArray(payload.attachments) ? payload.attachments : []; // renamed to attachments
 
   // If plainText not provided, derive from contentHtml
   if (!plainText && contentHtml) {
@@ -21,7 +22,7 @@ function normalizePayload(payload = {}) {
     }
   }
 
-  return { heading, contentHtml, contentJson, plainText };
+  return { heading, contentHtml, contentJson, plainText, attachments }; // include attachments
 }
 
 /**
@@ -30,7 +31,7 @@ function normalizePayload(payload = {}) {
  * - payload: may include title/content (legacy) or heading/contentHtml/contentJson/plainText
  */
 export async function createNote(userId, payload = {}) {
-  const { heading, contentHtml, contentJson, plainText } = normalizePayload(payload);
+  const { heading, contentHtml, contentJson, plainText, attachments } = normalizePayload(payload);
 
   // Use 'user' field in model (keeps compatibility with new schema)
   const note = new Note({
@@ -39,6 +40,7 @@ export async function createNote(userId, payload = {}) {
     contentHtml,
     contentJson,
     plainText,
+    attachments, // persist attachments
     isDeleted: false,
     versions: [],
   });
@@ -58,20 +60,11 @@ export async function getNotesForUser(userId, { includeDeleted = false, q, limit
   const filter = { user: userId };
   if (!includeDeleted) filter.isDeleted = false;
 
-  // If $text index exists (we created text index on heading + plainText), prefer text search
   if (q && q.trim()) {
-    // Use text search; fall back to regex if text search not desired
     filter.$text = { $search: q.trim() };
   }
 
-  // If text search is used, projection can include textScore; but to keep it simple we'll not require it
   const query = Note.find(filter).sort({ updatedAt: -1 }).skip(+skip).limit(+limit);
-
-  // If not using text search (no q) or you want case-insensitive regex fallback,
-  // you can combine with $or where appropriate - but here we used $text when q present.
-  // For backwards compatibility, if q provided but text index isn't present or you still want regex fallback,
-  // clients can call a different endpoint or we can implement a second attempt (not done here to avoid complexity).
-
   const notes = await query.exec();
   return notes;
 }
@@ -91,7 +84,7 @@ export async function getNoteById(userId, noteId, { includeDeleted = false } = {
  * - Pushes current state into versions[] for history
  * - Returns the updated note or null if not found / not allowed
  *
- * payload can include: title/heading, content/contentHtml, contentJson, plainText
+ * payload can include: title/heading, content/contentHtml, contentJson, plainText, attachments
  */
 export async function updateNote(userId, noteId, payload = {}) {
   // Fetch note first to check ownership and to push version history
@@ -99,7 +92,7 @@ export async function updateNote(userId, noteId, payload = {}) {
   if (!note) return null;
 
   // Normalize incoming payload
-  const { heading, contentHtml, contentJson, plainText } = normalizePayload(payload);
+  const { heading, contentHtml, contentJson, plainText, attachments } = normalizePayload(payload);
 
   // Push current state into versions (keep a shallow snapshot)
   note.versions = note.versions || [];
@@ -110,19 +103,24 @@ export async function updateNote(userId, noteId, payload = {}) {
     updatedAt: new Date(),
   });
 
-  // Update fields only if provided (allow empty string updates)
+  // Update fields
   if (heading !== undefined) note.heading = heading;
   if (contentHtml !== undefined) note.contentHtml = contentHtml;
   if (contentJson !== undefined) note.contentJson = contentJson;
+
   if (plainText !== undefined && plainText !== "") {
     note.plainText = plainText;
   } else if (!note.plainText && contentHtml) {
-    // if plainText wasn't provided but contentHtml is present, derive plainText
     try {
       note.plainText = convert(contentHtml, { wordwrap: false, selectors: [{ selector: "img", format: "skip" }] });
     } catch (e) {
       // ignore
     }
+  }
+
+  // Replace attachments if provided (including an empty array to clear); otherwise leave unchanged
+  if (payload.attachments !== undefined) {
+    note.attachments = attachments;
   }
 
   await note.save();
