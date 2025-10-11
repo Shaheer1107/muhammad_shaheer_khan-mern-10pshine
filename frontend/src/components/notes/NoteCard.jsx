@@ -7,12 +7,33 @@ const NoteCard = ({ note, onRefresh }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const BASE_URL = API_URL.replace(/\/api$/, "");
+
   const id = note._id || note.id;
-  const title = note.title || "Untitled";
-  const content = note.content || "";
-  const snippet = content.length > 120 ? content.slice(0, 117) + "…" : content;
+  const heading = note.heading || "Untitled Note";
+  const contentHtml = note.contentHtml || "";
+  const plainText = note.plainText || "";
+  const attachments = note.attachments ?? note.images ?? [];
   const updated = note.updatedAt || note.createdAt || null;
-  const date = updated ? new Date(updated).toLocaleString() : "";
+  const date = updated ? new Date(updated).toLocaleDateString() : "";
+
+  const getImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === "object") {
+      if (img.url) return img.url;
+      if (img.filename) return `${BASE_URL}/uploads/${img.filename}`;
+      return null;
+    }
+    if (typeof img === "string") {
+      return img.startsWith("http")
+        ? img
+        : `${BASE_URL}/uploads/${img.replace(/^uploads[\\/]/, "")}`;
+    }
+    return null;
+  };
+
+  const firstImageUrl = attachments.length > 0 ? getImageUrl(attachments[0]) : null;
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -28,21 +49,17 @@ const NoteCard = ({ note, onRefresh }) => {
     }
   };
 
-  const handleCardClick = () => {
-    // view mode
-    navigate(`/notes/${id}`);
-  };
-
+  const handleCardClick = () => navigate(`/notes/${id}`);
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     setShowDeleteConfirm(true);
   };
-
   const handleClickToEdit = (e) => {
-    // Stop card click and navigate directly to edit mode using query param
     e.stopPropagation();
     navigate(`/notes/${id}?edit=true`);
   };
+
+  const snippet = plainText?.length > 180 ? plainText.slice(0, 177) + "…" : plainText;
 
   return (
     <>
@@ -50,13 +67,13 @@ const NoteCard = ({ note, onRefresh }) => {
         onClick={handleCardClick}
         className="group relative h-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)] hover:-translate-y-1"
       >
-        {/* Gradient border effect */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-fuchsia-500/20 via-violet-500/20 to-indigo-500/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         <div className="relative z-10 flex h-full flex-col">
-          {/* Header */}
           <div className="mb-3 flex items-start justify-between gap-2">
-            <h3 className="flex-1 text-base font-semibold text-white line-clamp-2 leading-tight">{title}</h3>
+            <h3 className="flex-1 text-base font-semibold text-white line-clamp-2 leading-tight">
+              {heading}
+            </h3>
             <div className="flex items-center gap-1">
               <button
                 onClick={handleDeleteClick}
@@ -64,26 +81,41 @@ const NoteCard = ({ note, onRefresh }) => {
                 title="Delete note"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3">
-                  <path d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L5.05 6.5l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" />
+                  <path d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L5.05 6.5l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951z" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Content - takes remaining space */}
-          <div className="flex-1">
-            <p className="text-sm text-white/80 line-clamp-4 leading-relaxed">
-              {snippet || <span className="text-white/50 italic">No content</span>}
-            </p>
+          {firstImageUrl && (
+            <div className="mb-2 overflow-hidden rounded-lg">
+              <img
+                src={firstImageUrl}
+                alt="Note preview"
+                className="w-full h-32 object-cover"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+            </div>
+          )}
+
+          <div className="flex-1 text-sm text-white/80 overflow-hidden">
+            {contentHtml ? (
+              <div
+                className="line-clamp-4 leading-relaxed prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: contentHtml }}
+              />
+            ) : (
+              <p className="line-clamp-4 italic text-white/60">{snippet}</p>
+            )}
           </div>
 
-          {/* Footer */}
           <div className="mt-3 flex items-center justify-between">
             <div
-              // clickable "Click to edit" area
               role="button"
               onClick={handleClickToEdit}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClickToEdit(e); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") handleClickToEdit(e);
+              }}
               tabIndex={0}
               className="flex items-center gap-2 text-xs text-white/60 hover:text-white/80 cursor-pointer select-none"
               title="Edit note"
@@ -93,16 +125,11 @@ const NoteCard = ({ note, onRefresh }) => {
               </svg>
               <span>Click to edit</span>
             </div>
-            {date && (
-              <span className="text-xs text-white/50">
-                {new Date(updated).toLocaleDateString()}
-              </span>
-            )}
+            {date && <span className="text-xs text-white/50">{date}</span>}
           </div>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-md rounded-2xl bg-slate-900/95 p-6 shadow-2xl ring-1 ring-white/10">
@@ -118,7 +145,8 @@ const NoteCard = ({ note, onRefresh }) => {
               </div>
             </div>
             <p className="mb-6 text-white/80">
-              Are you sure you want to delete "<span className="font-medium text-white">{title}</span>"?
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-white">"{heading}"</span>?
             </p>
             <div className="flex gap-3">
               <button

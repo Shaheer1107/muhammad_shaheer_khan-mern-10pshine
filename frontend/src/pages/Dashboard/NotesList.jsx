@@ -1,4 +1,3 @@
-import { useState } from "react";
 import NoteCard from "../../components/notes/NoteCard";
 
 const NotesList = ({ notes = [], onRefresh }) => {
@@ -7,10 +6,10 @@ const NotesList = ({ notes = [], onRefresh }) => {
       {notes.map((note, index) => (
         <div
           key={note._id || note.id}
-          className="animate-fade-in-up h-64"
+          className="animate-fade-in-up h-72"
           style={{
             animationDelay: `${index * 100}ms`,
-            animationFillMode: "both"
+            animationFillMode: "both",
           }}
         >
           <NoteCard note={note} onRefresh={onRefresh} />
