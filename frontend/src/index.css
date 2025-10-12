@@ -69,6 +69,52 @@
   font-style: normal;
 }
 
+/* Font size dropdown styling - show numbers but keep pixel functionality */
+.quill-editor .ql-toolbar .ql-size .ql-picker-label::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item::before {
+  content: attr(data-value);
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="8px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="8px"]::before {
+  content: "8";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="10px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="10px"]::before {
+  content: "10";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="12px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="12px"]::before {
+  content: "12";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="14px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="14px"]::before {
+  content: "14";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="18px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="18px"]::before {
+  content: "18";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="24px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="24px"]::before {
+  content: "24";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="36px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="36px"]::before {
+  content: "36";
+}
+
+.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="48px"]::before,
+.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="48px"]::before {
+  content: "48";
+}
+
 .ql-editor h1 {
   font-size: 2rem;
   font-weight: bold;

@@ -4,9 +4,26 @@ import { createNote, getNote, updateNote, deleteNote } from "../../services/note
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
+const Font = ReactQuill.Quill.import("formats/font");
+Font.whitelist = ["sans-serif", "serif", "monospace", "arial", "times-new-roman", "courier-new"];
+ReactQuill.Quill.register(Font, true);
+
+// Custom size configuration with proper mapping
+const Size = ReactQuill.Quill.import("attributors/style/size");
+Size.whitelist = ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"];
+ReactQuill.Quill.register(Size, true);
+
+// Create a custom size format that maps display values to actual sizes
+const CustomSize = ReactQuill.Quill.import("attributors/style/size");
+CustomSize.whitelist = ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"];
+ReactQuill.Quill.register(CustomSize, true);
+
+// ✅ Quill toolbar configuration
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
+    [{ font: Font.whitelist }],
+    [{ size: ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"] }],
     ["bold", "italic", "underline", "strike"],
     [{ list: "ordered" }, { list: "bullet" }],
     ["link", "blockquote", "code-block", "clean"],
@@ -15,12 +32,13 @@ const modules = {
 
 const formats = [
   "header",
+  "font",
+  "size",
   "bold",
   "italic",
   "underline",
   "strike",
   "list",
-  "bullet",
   "link",
   "blockquote",
   "code-block",
@@ -116,10 +134,12 @@ const NoteEditor = () => {
       formData.append("attachments", JSON.stringify([]));
     }
 
-    // ✅ FIXED: match backend multer field name ("images")
+    // ✅ match backend multer field name ("images")
     newImages.forEach((f) => formData.append("images", f));
 
     if (imagesToDelete.length) formData.append("imagesToDelete", JSON.stringify(imagesToDelete));
+
+    console.log("🧾 FormData before saving:", [...formData.entries()]);
 
     try {
       setLoading(true);
@@ -227,6 +247,7 @@ const NoteEditor = () => {
                 />
               </div>
             ) : (
+              // ✅ UPDATED: Properly render saved rich text
               <div
                 className="rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -242,18 +263,17 @@ const NoteEditor = () => {
               <>
                 <div className="mb-4">
                   <input 
-                    name="images" // ✅ clearer input name
-                    type="file" 
-                    multiple 
+                    name="images"
+                    type="file"
+                    multiple
                     accept="image/*"
-                    onChange={handleImageChange} 
+                    onChange={handleImageChange}
                     className="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-fuchsia-500/20 file:text-fuchsia-300 hover:file:bg-fuchsia-500/30 file:cursor-pointer cursor-pointer"
                   />
                   <p className="text-xs text-white/60 mt-1">Select multiple images to add to your note</p>
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* Existing images */}
                   {existingImages.map((url, i) => (
                     <div key={i} className="relative group">
                       <img
@@ -272,7 +292,6 @@ const NoteEditor = () => {
                     </div>
                   ))}
 
-                  {/* Newly added images */}
                   {newImages.map((img, i) => (
                     <div key={i} className="relative group">
                       <img
@@ -293,11 +312,9 @@ const NoteEditor = () => {
               </>
             ) : (
               <>
-                {/* ✅ View mode image carousel */}
                 {allImages.length > 0 ? (
                   <div className="mt-6">
                     <div className="relative bg-zinc-800/50 rounded-2xl p-4 border border-white/10 image-carousel-container">
-                      {/* Main Image Display */}
                       <div className="relative aspect-video bg-zinc-900/50 rounded-xl overflow-hidden mb-4 image-carousel-main">
                         <img
                           src={allImages[currentImageIndex]}
@@ -307,7 +324,6 @@ const NoteEditor = () => {
                           onClick={() => setSelectedImage(allImages[currentImageIndex])}
                         />
                         
-                        {/* Navigation Arrows */}
                         {allImages.length > 1 && (
                           <>
                             <button
@@ -330,7 +346,6 @@ const NoteEditor = () => {
                         )}
                       </div>
 
-                      {/* Thumbnail Strip */}
                       {allImages.length > 1 && (
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide image-carousel-thumbnails">
                           {allImages.map((url, index) => (
@@ -354,7 +369,6 @@ const NoteEditor = () => {
                         </div>
                       )}
 
-                      {/* Image Counter */}
                       <div className="text-center text-sm text-white/60 mt-2">
                         {currentImageIndex + 1} of {allImages.length}
                       </div>
@@ -369,7 +383,6 @@ const NoteEditor = () => {
         </div>
       </div>
 
-      {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-slate-900 p-6 rounded-2xl max-w-sm w-full text-white">
@@ -386,7 +399,6 @@ const NoteEditor = () => {
         </div>
       )}
 
-      {/* Image Modal */}
       {selectedImage && (
         <div className="image-modal" onClick={() => setSelectedImage(null)}>
           <img src={selectedImage} alt="Full size" onClick={(e) => e.stopPropagation()} />
