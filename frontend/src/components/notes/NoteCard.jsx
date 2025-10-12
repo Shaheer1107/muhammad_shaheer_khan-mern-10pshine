@@ -87,21 +87,10 @@ const NoteCard = ({ note, onRefresh }) => {
             </div>
           </div>
 
-          {firstImageUrl && (
-            <div className="mb-2 overflow-hidden rounded-lg">
-              <img
-                src={firstImageUrl}
-                alt="Note preview"
-                className="w-full h-32 object-cover"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
-            </div>
-          )}
-
           <div className="flex-1 text-sm text-white/80 overflow-hidden">
             {contentHtml ? (
               <div
-                className="line-clamp-4 leading-relaxed prose prose-invert max-w-none"
+                className="line-clamp-4 leading-relaxed rich-text-content max-w-none"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             ) : (

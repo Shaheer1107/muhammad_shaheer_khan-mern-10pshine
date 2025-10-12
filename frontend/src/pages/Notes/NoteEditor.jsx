@@ -7,7 +7,7 @@ import "react-quill-new/dist/quill.snow.css";
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline"],
+    ["bold", "italic", "underline", "strike"],
     [{ list: "ordered" }, { list: "bullet" }],
     ["link", "blockquote", "code-block", "clean"],
   ],
@@ -18,6 +18,7 @@ const formats = [
   "bold",
   "italic",
   "underline",
+  "strike",
   "list",
   "bullet",
   "link",
@@ -45,6 +46,8 @@ const NoteEditor = () => {
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // ✅ Load note if editing/viewing existing one
   useEffect(() => {
@@ -90,6 +93,12 @@ const NoteEditor = () => {
     setExistingImages(existingImages.filter((i) => i !== url));
   };
 
+  // ✅ Carousel navigation
+  const allImages = [...existingImages, ...newImages.map(img => URL.createObjectURL(img))];
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  const goToImage = (index) => setCurrentImageIndex(index);
+
   // ✅ Save note
   const handleSave = async () => {
     if (!heading.trim() && !contentHtml.trim()) return setError("Note cannot be empty.");
@@ -107,7 +116,9 @@ const NoteEditor = () => {
       formData.append("attachments", JSON.stringify([]));
     }
 
-    newImages.forEach((f) => formData.append("files", f));
+    // ✅ FIXED: match backend multer field name ("images")
+    newImages.forEach((f) => formData.append("images", f));
+
     if (imagesToDelete.length) formData.append("imagesToDelete", JSON.stringify(imagesToDelete));
 
     try {
@@ -190,7 +201,9 @@ const NoteEditor = () => {
               />
             ) : (
               <div className="rounded-xl bg-zinc-800/80 text-white px-4 py-3 border border-white/20">
-                {heading || <em className="text-white/50">Untitled</em>}
+                <h1 className="text-2xl font-bold text-white">
+                  {heading || <em className="text-white/50">Untitled</em>}
+                </h1>
               </div>
             )}
           </div>
@@ -199,21 +212,23 @@ const NoteEditor = () => {
           <div>
             <label className="text-white/80 text-sm mb-2 block">Content</label>
             {isEditing ? (
-              <ReactQuill
-                value={contentHtml}
-                onChange={(html, delta, source, editor) => {
-                  setContentHtml(html);
-                  setContentJson(editor.getContents());
-                  setPlainText(editor.getText());
-                }}
-                theme="snow"
-                modules={modules}
-                formats={formats}
-                className="bg-white text-black rounded-xl"
-              />
+              <div className="bg-white rounded-xl overflow-hidden">
+                <ReactQuill
+                  value={contentHtml}
+                  onChange={(html, delta, source, editor) => {
+                    setContentHtml(html);
+                    setContentJson(editor.getContents());
+                    setPlainText(editor.getText());
+                  }}
+                  theme="snow"
+                  modules={modules}
+                  formats={formats}
+                  className="quill-editor"
+                />
+              </div>
             ) : (
               <div
-                className="rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] ql-editor"
+                className="rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             )}
@@ -225,21 +240,32 @@ const NoteEditor = () => {
 
             {isEditing ? (
               <>
-                <input type="file" multiple onChange={handleImageChange} className="text-white" />
+                <div className="mb-4">
+                  <input 
+                    name="images" // ✅ clearer input name
+                    type="file" 
+                    multiple 
+                    accept="image/*"
+                    onChange={handleImageChange} 
+                    className="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-fuchsia-500/20 file:text-fuchsia-300 hover:file:bg-fuchsia-500/30 file:cursor-pointer cursor-pointer"
+                  />
+                  <p className="text-xs text-white/60 mt-1">Select multiple images to add to your note</p>
+                </div>
 
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {/* Existing images */}
                   {existingImages.map((url, i) => (
-                    <div key={i} className="relative">
+                    <div key={i} className="relative group">
                       <img
                         src={url}
                         alt=""
-                        className="w-full h-32 object-cover rounded-lg border border-white/20"
+                        className="w-full h-32 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-90 transition-opacity"
                         onError={(e) => (e.currentTarget.style.display = "none")}
+                        onClick={() => setSelectedImage(url)}
                       />
                       <button
                         onClick={() => handleRemoveExistingImage(url)}
-                        className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                        className="absolute top-2 right-2 bg-red-500/80 text-white rounded-full p-1 hover:bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         ✕
                       </button>
@@ -248,15 +274,16 @@ const NoteEditor = () => {
 
                   {/* Newly added images */}
                   {newImages.map((img, i) => (
-                    <div key={i} className="relative">
+                    <div key={i} className="relative group">
                       <img
                         src={URL.createObjectURL(img)}
                         alt=""
-                        className="w-full h-32 object-cover rounded-lg border border-white/20"
+                        className="w-full h-32 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setSelectedImage(URL.createObjectURL(img))}
                       />
                       <button
                         onClick={() => handleRemoveNewImage(i)}
-                        className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                        className="absolute top-2 right-2 bg-red-500/80 text-white rounded-full p-1 hover:bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         ✕
                       </button>
@@ -266,18 +293,72 @@ const NoteEditor = () => {
               </>
             ) : (
               <>
-                {/* ✅ View mode image preview */}
-                {existingImages.length > 0 ? (
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {existingImages.map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt={`Note image ${i + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-white/20"
-                        onError={(e) => (e.currentTarget.style.display = "none")}
-                      />
-                    ))}
+                {/* ✅ View mode image carousel */}
+                {allImages.length > 0 ? (
+                  <div className="mt-6">
+                    <div className="relative bg-zinc-800/50 rounded-2xl p-4 border border-white/10">
+                      {/* Main Image Display */}
+                      <div className="relative aspect-video bg-zinc-900/50 rounded-xl overflow-hidden mb-4">
+                        <img
+                          src={allImages[currentImageIndex]}
+                          alt={`Note image ${currentImageIndex + 1}`}
+                          className="w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                          onError={(e) => (e.currentTarget.style.display = "none")}
+                          onClick={() => setSelectedImage(allImages[currentImageIndex])}
+                        />
+                        
+                        {/* Navigation Arrows */}
+                        {allImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={prevImage}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={nextImage}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Thumbnail Strip */}
+                      {allImages.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {allImages.map((url, index) => (
+                            <button
+                              key={index}
+                              onClick={() => goToImage(index)}
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                                index === currentImageIndex
+                                  ? 'border-fuchsia-400 ring-2 ring-fuchsia-400/30'
+                                  : 'border-white/20 hover:border-white/40'
+                              }`}
+                            >
+                              <img
+                                src={url}
+                                alt={`Thumbnail ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => (e.currentTarget.style.display = "none")}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Image Counter */}
+                      <div className="text-center text-sm text-white/60 mt-2">
+                        {currentImageIndex + 1} of {allImages.length}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-white/50 italic">No images attached.</p>
@@ -302,6 +383,19 @@ const NoteEditor = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div className="image-modal" onClick={() => setSelectedImage(null)}>
+          <img src={selectedImage} alt="Full size" onClick={(e) => e.stopPropagation()} />
+          <button
+            className="image-modal-close"
+            onClick={() => setSelectedImage(null)}
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
