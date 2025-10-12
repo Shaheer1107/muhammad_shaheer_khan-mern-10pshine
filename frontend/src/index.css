@@ -101,11 +101,11 @@
 }
 
 .ql-editor ul {
-  list-style-type: disc;
+  list-style-type: disc !important;
 }
 
 .ql-editor ol {
-  list-style-type: decimal;
+  list-style-type: decimal !important;
 }
 
 .ql-editor li {
@@ -122,11 +122,11 @@
 }
 
 .ql-editor u {
-  text-decoration: underline;
+  text-decoration: underline !important;
 }
 
 .ql-editor s {
-  text-decoration: line-through;
+  text-decoration: line-through !important;
 }
 
 .ql-editor blockquote {
@@ -195,11 +195,11 @@
 }
 
 .rich-text-content ul {
-  list-style-type: disc;
+  list-style-type: disc !important;
 }
 
 .rich-text-content ol {
-  list-style-type: decimal;
+  list-style-type: decimal !important;
 }
 
 .rich-text-content li {
@@ -217,11 +217,11 @@
 }
 
 .rich-text-content u {
-  text-decoration: underline;
+  text-decoration: underline !important;
 }
 
 .rich-text-content s {
-  text-decoration: line-through;
+  text-decoration: line-through !important;
 }
 
 .rich-text-content blockquote {
@@ -297,4 +297,43 @@
 
 .image-modal-close:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide scrollbars but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Ensure no horizontal overflow */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Responsive image carousel */
+@media (max-width: 640px) {
+  .image-carousel-container {
+    padding: 0.75rem;
+  }
+  
+  .image-carousel-main {
+    aspect-ratio: 16/9;
+  }
+  
+  .image-carousel-thumbnails {
+    gap: 0.5rem;
+  }
+  
+  .image-carousel-thumbnail {
+    width: 3rem;
+    height: 3rem;
+  }
 }

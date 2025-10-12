@@ -148,7 +148,7 @@ const NoteEditor = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-fuchsia-900 relative">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-fuchsia-900 relative">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-fuchsia-400/10 blur-3xl" />
@@ -156,8 +156,8 @@ const NoteEditor = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl space-y-6">
+      <div className="relative z-10 px-4 py-6 sm:px-6 lg:px-8 w-full">
+        <div className="mx-auto max-w-4xl w-full space-y-6">
           {/* Header */}
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-white">
@@ -296,9 +296,9 @@ const NoteEditor = () => {
                 {/* ✅ View mode image carousel */}
                 {allImages.length > 0 ? (
                   <div className="mt-6">
-                    <div className="relative bg-zinc-800/50 rounded-2xl p-4 border border-white/10">
+                    <div className="relative bg-zinc-800/50 rounded-2xl p-4 border border-white/10 image-carousel-container">
                       {/* Main Image Display */}
-                      <div className="relative aspect-video bg-zinc-900/50 rounded-xl overflow-hidden mb-4">
+                      <div className="relative aspect-video bg-zinc-900/50 rounded-xl overflow-hidden mb-4 image-carousel-main">
                         <img
                           src={allImages[currentImageIndex]}
                           alt={`Note image ${currentImageIndex + 1}`}
@@ -332,12 +332,12 @@ const NoteEditor = () => {
 
                       {/* Thumbnail Strip */}
                       {allImages.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-2">
+                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide image-carousel-thumbnails">
                           {allImages.map((url, index) => (
                             <button
                               key={index}
                               onClick={() => goToImage(index)}
-                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all image-carousel-thumbnail ${
                                 index === currentImageIndex
                                   ? 'border-fuchsia-400 ring-2 ring-fuchsia-400/30'
                                   : 'border-white/20 hover:border-white/40'
