@@ -302,6 +302,57 @@
   color: #f9fafb;
 }
 
+/* Text alignment styles for rich text content */
+.rich-text-content .ql-align-left {
+  text-align: left;
+}
+
+.rich-text-content .ql-align-center {
+  text-align: center;
+}
+
+.rich-text-content .ql-align-right {
+  text-align: right;
+}
+
+.rich-text-content .ql-align-justify {
+  text-align: justify;
+}
+
+/* Additional alignment support for paragraphs and other elements */
+.rich-text-content p.ql-align-left {
+  text-align: left;
+}
+
+.rich-text-content p.ql-align-center {
+  text-align: center;
+}
+
+.rich-text-content p.ql-align-right {
+  text-align: right;
+}
+
+.rich-text-content p.ql-align-justify {
+  text-align: justify;
+}
+
+/* Support for div elements with alignment */
+.rich-text-content div.ql-align-left {
+  text-align: left;
+}
+
+.rich-text-content div.ql-align-center {
+  text-align: center;
+}
+
+.rich-text-content div.ql-align-right {
+  text-align: right;
+}
+
+.rich-text-content div.ql-align-justify {
+  text-align: justify;
+}
+
 /* Image modal styles */
 .image-modal {
   position: fixed;
