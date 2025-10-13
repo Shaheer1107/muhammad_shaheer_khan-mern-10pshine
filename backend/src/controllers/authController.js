@@ -1,8 +1,14 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import RefreshToken from "../models/RefreshToken.js";
+import PasswordResetToken from "../models/PasswordResetToken.js";
 import { createAccessToken, createRefreshTokenString, hashToken } from "../utils/token.js";
 import logger from "../logger.js";
+
+console.log("Email config:", process.env.EMAIL_USER, process.env.EMAIL_PASS ? "✅ Loaded" : "❌ Missing");
+
 
 // Helper to get request-scoped logger
 function getLog(req) {
@@ -129,6 +135,114 @@ export const logout = async (req, res, next) => {
     res.json({ message: "Logged out successfully" });
   } catch (err) {
     log.error({ err }, "Logout error");
+    next(err);
+  }
+};
+
+/* ================================
+   FORGOT PASSWORD FUNCTIONALITY
+   ================================ */
+
+export const forgotPassword = async (req, res, next) => {
+  const log = getLog(req);
+
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      log.warn({ action: "forgot_password_failed", email }, "User not found");
+      return res
+        .status(200)
+        .json({ message: "If the email exists, a reset link will be sent." });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+
+    await PasswordResetToken.deleteMany({ user: user._id });
+
+    await PasswordResetToken.create({
+      user: user._id,
+      tokenHash,
+      expiresAt,
+    });
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+
+    // ✅ Create transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    console.log("🔧 Email config loaded:", {
+      EMAIL_USER: process.env.EMAIL_USER,
+      EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
+    });
+
+    // ✅ Verify transporter connection
+    await transporter.verify().then(() => {
+      console.log("✅ Gmail transporter ready to send emails");
+    }).catch(err => {
+      console.error("❌ Gmail transporter verification failed:", err);
+    });
+
+    // ✅ Attempt to send email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Password Reset Request",
+      html: `
+        <p>Hello ${user.name || "user"},</p>
+        <p>You requested to reset your password. Click the link below to reset it:</p>
+        <a href="${resetUrl}" target="_blank">${resetUrl}</a>
+        <p>This link expires in 15 minutes.</p>
+      `,
+    });
+
+    console.log("✅ Password reset email sent to:", user.email);
+    log.info({ action: "forgot_password_email_sent", email }, "Password reset email sent");
+
+    res.json({ message: "If the email exists, a reset link will be sent." });
+
+  } catch (err) {
+    console.error("❌ Email sending failed:", err);
+    log.error({ err }, "Forgot password error");
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  const log = getLog(req);
+  try {
+    const { token, id, newPassword } = req.body;
+    const hashedToken = hashToken(token);
+
+    const passwordResetToken = await PasswordResetToken.findOne({ user: id, tokenHash: hashedToken });
+    if (!passwordResetToken || passwordResetToken.expiresAt < new Date()) {
+      log.warn({ action: "reset_failed", userId: id }, "Invalid or expired reset token");
+      return res.status(400).json({ error: { message: "Invalid or expired reset link" } });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(400).json({ error: { message: "User not found" } });
+
+    const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    user.passwordHash = passwordHash;
+    await user.save();
+
+    await PasswordResetToken.deleteMany({ user: user._id });
+
+    log.info({ action: "password_reset_success", userId: user._id }, "Password reset successfully");
+    res.json({ message: "Password has been reset successfully" });
+  } catch (err) {
+    log.error({ err }, "Reset password error");
     next(err);
   }
 };
