@@ -269,7 +269,7 @@ const NoteEditor = () => {
             ) : (
               // ✅ UPDATED: Properly render saved rich text
               <div
-                className="rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
+                className="ql-editor rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             )}

@@ -7,7 +7,7 @@ const NoteCard = ({ note, onRefresh }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const API_URL = import.meta.env.VITE_API_URL;
   const BASE_URL = API_URL.replace(/\/api$/, "");
 
   const id = note._id || note.id;
@@ -65,13 +65,16 @@ const NoteCard = ({ note, onRefresh }) => {
     <>
       <div
         onClick={handleCardClick}
-        className="group relative h-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)] hover:-translate-y-1"
+        className="ql-editor group relative h-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)] hover:-translate-y-1"
       >
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-fuchsia-500/20 via-violet-500/20 to-indigo-500/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         <div className="relative z-10 flex h-full flex-col">
           <div className="mb-3 flex items-start justify-between gap-2">
-            <h3 className="flex-1 text-base font-semibold text-white line-clamp-2 leading-tight">
+            <h3
+              className="flex-1 text-xl font-bold text-white line-clamp-2 leading-tight"
+              style={{ color: "#ffffff" }}
+            >
               {heading}
             </h3>
             <div className="flex items-center gap-1">
