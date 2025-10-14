@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getNotes } from "../../services/notesService";
+import { getUserData } from "../../services/authService";
 import NotesList from "./NotesList";
 import { useNavigate } from "react-router-dom";
 
@@ -8,6 +9,30 @@ const Dashboard = () => {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const [user, setUser] = useState({
+    name: "Loading...",
+    profileImage: null,
+  });
+
+  const API_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = API_URL.replace(/\/api$/, "");
+
+  const fetchUserData = async () => {
+    try {
+      const userData = await getUserData();
+      setUser(userData);
+    } catch (err) {
+      console.error("Failed to fetch user data:", err);
+      // Fallback to default user data
+      setUser({
+        name: "User",
+        profileImage: null,
+      });
+    }
+  };
 
   const fetchNotes = async () => {
     setLoading(true);
@@ -36,7 +61,19 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  // Close dropdown when clicking outside
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    fetchUserData();
     fetchNotes();
   }, []);
 
@@ -52,66 +89,103 @@ const Dashboard = () => {
       <div className="relative z-10 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {/* Header */}
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <h1 className="bg-gradient-to-r from-fuchsia-300 via-violet-200 to-indigo-200 bg-clip-text text-3xl sm:text-4xl font-extrabold tracking-tight text-transparent">
-                Your Notes
-              </h1>
-              <p className="text-sm sm:text-base text-white/70">
-                Organize your thoughts beautifully
-              </p>
-            </div>
+          <div className="mb-8">
+            {/* Top Navigation Bar */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="space-y-2">
+                <h1 className="bg-gradient-to-r from-fuchsia-300 via-violet-200 to-indigo-200 bg-clip-text text-3xl sm:text-4xl font-extrabold tracking-tight text-transparent">
+                  Your Notes
+                </h1>
+                <p className="text-sm sm:text-base text-white/70">
+                  Organize your thoughts beautifully
+                </p>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                onClick={() => navigate("/notes/new")}
-                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-white shadow-lg transition duration-200 ease-out hover:shadow-[0_10px_30px_-10px_rgba(168,85,247,0.6)] focus:outline-none"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  New Note
-                </span>
-                <span className="absolute inset-0 -translate-x-full bg-white/20 transition group-hover:translate-x-0" />
-              </button>
-
-              <button
-                onClick={fetchNotes}
-                className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/10 hover:border-white/30"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
+              {/* Top Right Actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/notes/new")}
+                  className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-white shadow-lg transition duration-200 ease-out hover:shadow-[0_10px_30px_-10px_rgba(168,85,247,0.6)] focus:outline-none"
                 >
-                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
+                  <span className="relative z-10 flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="h-5 w-5"
+                    >
+                      <path d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    <span className="hidden sm:inline">New Note</span>
+                  </span>
+                  <span className="absolute inset-0 -translate-x-full bg-white/20 transition group-hover:translate-x-0" />
+                </button>
 
-              <button
-                onClick={handleLogout}
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 hover:border-red-500/50"
-              >
-                <span className="flex items-center gap-2">
+                <button
+                  onClick={fetchNotes}
+                  className="rounded-xl border border-white/20 bg-white/5 p-2.5 text-sm font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/10 hover:border-white/30"
+                  title="Refresh notes"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    fill="currentColor"
                     viewBox="0 0 24 24"
-                    className="h-5 w-5"
+                    fill="currentColor"
+                    className="h-4 w-4"
                   >
-                    <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Logout
-                </span>
-              </button>
+                </button>
+
+                {/* Avatar Dropdown - Fixed Position */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown((prev) => !prev)}
+                    className="relative flex items-center justify-center w-11 h-11 rounded-full border border-white/20 overflow-hidden bg-white/10 hover:bg-white/20 transition"
+                  >
+                    {user.profileImage ? (
+                      <img
+                        src={user.profileImage.startsWith("http") 
+                          ? user.profileImage 
+                          : `${BASE_URL}/uploads/${user.profileImage.replace(/^uploads[\\/]/, "")}`
+                        }
+                        alt="User Avatar"
+                        className="w-full h-full object-contain rounded-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="h-6 w-6 text-white/60"
+                        >
+                          <path d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-3 w-44 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg text-white/90 z-20">
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          navigate("/profile");
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-white/20 rounded-t-xl transition"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-3 hover:bg-red-500/30 text-red-300 rounded-b-xl transition"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

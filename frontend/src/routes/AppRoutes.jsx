@@ -7,6 +7,7 @@ import ResetPassword from "../pages/Auth/ResetPassword";
 import PrivateRoute from "./PrivateRoute";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import NoteEditor from "../pages/Notes/NoteEditor";
+import UserProfile from "../pages/Profile/UserProfile";
 
 const AppRoutes = () => {
   return (
@@ -37,6 +38,14 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <NoteEditor />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <UserProfile />
             </PrivateRoute>
           }
         />
