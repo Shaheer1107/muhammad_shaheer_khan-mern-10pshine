@@ -1,4 +1,3 @@
-// src/app.js
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -13,7 +12,8 @@ import errorHandler from "./middlewares/errorHandler.js";
 
 import authRoutes from "./routes/auth.js";
 import notesRoutes from "./routes/notesRoutes.js";
-import uploadsRoutes from "./routes/uploads.js"; // <--- new
+import userRoutes from "./routes/user.js";
+import uploadsRoutes from "./routes/uploads.js"; // <--- uploads route
 
 dotenv.config();
 
@@ -22,7 +22,9 @@ const app = express();
 // Resolve __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, "../.env") }); 
+
+// Load .env from project root (one level above src)
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 // ✅ Enable CORS for frontend (React Vite default: http://localhost:5173)
 app.use(
@@ -35,25 +37,43 @@ app.use(
 // Logging (pino-http)
 app.use(requestLogger);
 
-// Request id & req.log child
+// Unique request ID middleware
 app.use(requestIdMiddleware);
 
-// Content-Type guard for endpoints that carry JSON payloads
+// Content-Type check middleware
 app.use(contentTypeCheck);
 
 // Body parsers & cookie parser
 app.use(parsersMiddleware);
 
-// Serve uploaded files statically from project-root /uploads
-// maps: GET /uploads/<filename> -> ./uploads/<filename>
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+/* ------------------------------------------------------------------
+   ✅ FIXED: Correctly serve uploads from the backend/uploads folder
+   This ensures Express always serves files from:
+   C:\Users\dell\OneDrive\Desktop\10P_Notes_App\muhammad_shaheer_khan-mern-10pshine\backend\uploads
+------------------------------------------------------------------- */
+
+// Resolve backend root (one level up from src)
+const backendRoot = path.resolve(__dirname, "..");
+
+app.use(
+  "/uploads/note_images",
+  express.static(path.join(backendRoot, "uploads", "note_images"))
+);
+
+app.use(
+  "/uploads/profile_pics",
+  express.static(path.join(backendRoot, "uploads", "profile_pics"))
+);
+
+/* ------------------------------------------------------------------ */
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/uploads", uploadsRoutes); // mount uploads route
+app.use("/api/uploads", uploadsRoutes);
 app.use("/api/notes", notesRoutes);
+app.use("/api/user", userRoutes);
 
-// Centralized error handler (after routes)
+// Centralized error handler (must be last)
 app.use(errorHandler);
 
 export default app;
