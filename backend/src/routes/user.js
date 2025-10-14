@@ -8,11 +8,11 @@ import {
   getUserProfile,
   updateUserProfile,
   uploadProfilePicture,
+  deleteProfilePicture,
   changePassword,
 } from "../controllers/userController.js";
 
 // ✅ Reuse centralized multer instance for profile uploads
-// This ensures uploads go to backend/uploads/profile_pics (same place as other upload routes)
 import { uploadProfile } from "./uploads.js";
 
 const router = express.Router();
@@ -41,9 +41,12 @@ router.put(
   updateUserProfile
 );
 
-// 3️⃣ Upload profile picture
+// 3️⃣ Upload / Replace profile picture
 // Use shared `uploadProfile` multer instance so files land in the centralized uploads folder.
 router.post("/me/upload", authMiddleware, uploadProfile.single("profileImage"), uploadProfilePicture);
+
+// 3.1️⃣ Delete profile picture
+router.delete("/me/upload", authMiddleware, deleteProfilePicture);
 
 // 4️⃣ Change password
 router.put(

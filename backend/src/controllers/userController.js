@@ -1,6 +1,31 @@
+// src/controllers/userController.js
 import bcrypt from "bcryptjs";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import User from "../models/User.js";
 import logger from "../logger.js";
+
+/* Helper to resolve backend root and profile pics folder reliably */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// __dirname is src/controllers, so two levels up -> backend root
+const backendRoot = path.resolve(__dirname, "../../");
+const profilePicsDir = path.join(backendRoot, "uploads", "profile_pics");
+
+/**
+ * Remove a file safely (if exists) given an absolute path.
+ */
+const safeUnlink = (filePath, log) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      log?.info({ filePath }, "Deleted file from disk");
+    }
+  } catch (err) {
+    log?.warn({ err, filePath }, "Failed to delete file from disk");
+  }
+};
 
 /**
  * @desc Get logged-in user's profile
@@ -69,9 +94,14 @@ export const updateUserProfile = async (req, res) => {
 };
 
 /**
- * @desc Upload profile picture
+ * @desc Upload or replace profile picture
  * @route POST /api/user/me/upload
  * @access Private
+ *
+ * Behavior:
+ * - Expects multer to populate req.file (route uses shared uploadProfile middleware).
+ * - If the user already has a profileImage, delete the old file from disk.
+ * - Save new profileImage URL in DB and return updated user.
  */
 export const uploadProfilePicture = async (req, res) => {
   const log = (req && req.log) ? req.log : logger.child({ module: "userController" });
@@ -82,6 +112,18 @@ export const uploadProfilePicture = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
+    // If user had an existing profileImage, attempt to delete old file
+    if (user.profileImage) {
+      try {
+        const oldFilename = path.basename(new URL(user.profileImage).pathname);
+        const oldFilePath = path.join(profilePicsDir, oldFilename);
+        safeUnlink(oldFilePath, log);
+      } catch (err) {
+        // If URL parsing fails, just warn and continue
+        log.warn({ err, userId }, "Failed to parse/delete old profile image");
+      }
+    }
+
     const profileUrl = `${req.protocol}://${req.get("host")}/uploads/profile_pics/${req.file.filename}`;
     user.profileImage = profileUrl;
     await user.save();
@@ -90,6 +132,46 @@ export const uploadProfilePicture = async (req, res) => {
     return res.status(200).json({ msg: "Profile picture updated", user });
   } catch (err) {
     log.error({ err, userId: req.user?._id }, "Error uploading profile picture");
+    return res.status(500).json({ msg: "Server error" });
+  }
+};
+
+/**
+ * @desc Delete user's profile picture (remove file + clear DB field)
+ * @route DELETE /api/user/me/upload
+ * @access Private
+ *
+ * Behavior:
+ * - If user has profileImage, deletes the file from disk (if exists) and clears profileImage field.
+ */
+export const deleteProfilePicture = async (req, res) => {
+  const log = (req && req.log) ? req.log : logger.child({ module: "userController" });
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    if (!user.profileImage) {
+      return res.status(400).json({ msg: "No profile picture to delete" });
+    }
+
+    // Attempt to delete the file from disk
+    try {
+      const filename = path.basename(new URL(user.profileImage).pathname);
+      const filePath = path.join(profilePicsDir, filename);
+      safeUnlink(filePath, log);
+    } catch (err) {
+      log.warn({ err, userId }, "Failed to parse/delete profile image file path");
+    }
+
+    // Clear DB field
+    user.profileImage = undefined;
+    await user.save();
+
+    log.info({ userId, action: "profile_image_deleted" }, "Profile image deleted");
+    return res.status(200).json({ msg: "Profile picture deleted", user });
+  } catch (err) {
+    log.error({ err, userId: req.user?._id }, "Error deleting profile picture");
     return res.status(500).json({ msg: "Server error" });
   }
 };
