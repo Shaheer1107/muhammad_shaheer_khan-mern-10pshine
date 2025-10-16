@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUserData, updateUserProfile, uploadProfileImage } from "../../services/authService";
+import { getUserData, updateUserProfile, uploadProfileImage } from "../../services/userService";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -66,11 +66,37 @@ const UserProfile = () => {
     }));
   };
 
+  // Helper to normalize whatever the API returns into a plain user object
+  const normalizeUserResponse = (resp) => {
+    if (!resp) return null;
+    // resp might be the user object itself, or { user: {...} }, or { data: {...} }
+    if (resp.user && typeof resp.user === "object") return resp.user;
+    if (resp.data && typeof resp.data === "object") return resp.data;
+    return resp;
+  };
+
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      const updatedUser = await updateUserProfile(formData);
-      setUser(updatedUser);
+      setError("");
+      const raw = await updateUserProfile(formData);
+
+      // Normalize response to a user object and merge with previous to avoid losing fields
+      const updated = normalizeUserResponse(raw);
+      if (updated) {
+        setUser(prev => ({ ...(prev || {}), ...updated }));
+        // keep formData in sync with saved values (useful if backend cleaned/modified any fields)
+        setFormData({
+          name: (updated.name ?? formData.name) || "",
+          bio: (updated.bio ?? formData.bio) || "",
+          phone: (updated.phone ?? formData.phone) || "",
+          dateOfBirth: updated.dateOfBirth ? updated.dateOfBirth.split('T')[0] : (formData.dateOfBirth || ""),
+        });
+      } else {
+        // fallback: if API returned nothing useful, keep previous user intact
+        console.warn("updateUserProfile returned no user payload, leaving existing user intact.");
+      }
+
       setIsEditing(false);
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -98,13 +124,33 @@ const UserProfile = () => {
 
     try {
       setIsUploading(true);
-      const response = await uploadProfileImage(file);
-      setUser(prev => ({ ...prev, profileImage: response.profileImage }));
+      setError("");
+      const raw = await uploadProfileImage(file);
+
+      // uploadProfileImage might return { profileImage: "path" } or { data: { profileImage: "path" } } or { user: {...} }
+      let updated = normalizeUserResponse(raw);
+
+      if (updated && updated.profileImage) {
+        // If API returned a user object that includes profileImage, merge it
+        setUser(prev => ({ ...(prev || {}), ...updated }));
+      } else {
+        // If response only contains profileImage (not wrapped), grab it
+        const profileImage = raw?.profileImage ?? raw?.data?.profileImage;
+        if (profileImage) {
+          setUser(prev => ({ ...(prev || {}), profileImage }));
+        } else {
+          // As last resort, if backend returned the new file name under some other key, try raw.data or raw
+          // but don't overwrite entire user with an unexpected structure.
+          console.warn("uploadProfileImage returned unexpected shape:", raw);
+        }
+      }
     } catch (err) {
       console.error("Failed to upload image:", err);
       setError(err?.response?.data?.message || "Failed to upload image");
     } finally {
       setIsUploading(false);
+      // reset file input so same file can be uploaded again if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 

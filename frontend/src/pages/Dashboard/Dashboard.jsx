@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { getNotes } from "../../services/notesService";
-import { getUserData } from "../../services/authService";
+import { getUserData} from "../../services/userService";
 import NotesList from "./NotesList";
 import { useNavigate } from "react-router-dom";
 
@@ -176,6 +176,17 @@ const Dashboard = () => {
                       >
                         View Profile
                       </button>
+
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          navigate("/change_password");
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-white/20 rounded-t-xl transition"
+                      >
+                        Change Password
+                      </button>
+
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-3 hover:bg-red-500/30 text-red-300 rounded-b-xl transition"
