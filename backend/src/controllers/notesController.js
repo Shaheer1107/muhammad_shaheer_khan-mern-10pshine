@@ -106,20 +106,62 @@ export async function listNotesHandler(req, res, next) {
   const log = getLog(req);
   try {
     const userId = req.user?.id ?? req.user?._id;
-    const { q } = req.query;
+
+    // --- Extract query params ---
+    const {
+      q,
+      includeDeleted,
+      filterType,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    } = req.query;
+
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
 
-    log.info({ userId, action: "list_notes", q, limit, skip }, "Listing notes");
+    log.info(
+      {
+        userId,
+        action: "list_notes",
+        q,
+        includeDeleted,
+        filterType,
+        startDate,
+        endDate,
+        sortBy,
+        sortOrder,
+        limit,
+        skip,
+      },
+      "Listing notes"
+    );
 
-    const notes = await noteService.getNotesForUser(userId, { q, limit, skip });
+    // --- Fetch notes from service ---
+    const notes = await noteService.getNotesForUser(userId, {
+      includeDeleted: includeDeleted === "true",
+      q,
+      filterType,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+      limit,
+      skip,
+    });
 
-    return res.json({ success: true, notes });
+    return res.json({
+      success: true,
+      count: notes.length,
+      notes,
+    });
   } catch (err) {
     log.error({ err }, "Error listing notes");
     return next(err);
   }
 }
+
 
 /**
  * Get single note
