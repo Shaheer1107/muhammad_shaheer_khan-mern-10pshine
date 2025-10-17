@@ -101,16 +101,6 @@ const Login = () => {
                         required
                         className="w-full rounded-xl border border-white/20 bg-zinc-800/80 px-4 py-3 text-white placeholder-white/60 outline-none transition focus:border-violet-400/70 focus:bg-zinc-800/90 focus:shadow-[0_0_0_3px_rgba(167,139,250,0.14)]"
                       />
-                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="h-5 w-5"
-                        >
-                          <path d="M20 4H4a2 2 0 00-2 2v.35l10 6.25 10-6.25V6a2 2 0 00-2-2zm0 4.15l-8.46 5.29a1 1 0 01-1.08 0L2 8.15V18a2 2 0 002 2h16a2 2 0 002-2V8.15z" />
-                        </svg>
-                      </div>
                     </div>
                   </div>
 
@@ -129,18 +119,16 @@ const Login = () => {
                         required
                         className="w-full rounded-xl border border-white/20 bg-zinc-800/80 px-4 py-3 text-white placeholder-white/60 outline-none transition focus:border-indigo-400/70 focus:bg-zinc-800/90 focus:shadow-[0_0_0_3px_rgba(129,140,248,0.14)]"
                       />
-                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="h-5 w-5"
-                        >
-                          <path d="M12 5a5 5 0 00-5 5v2H6a2 2 0 00-2 2v5a2 2 0 002 2h12a2 2 0 002-2v-5a2 2 0 00-2-2h-1v-2a5 5 0 00-5-5zm-3 7v-2a3 3 0 116 0v2H9z" />
-                        </svg>
-                      </div>
                     </div>
                   </div>
+
+                  {/* Forgot Password */}
+                  <p
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-right text-sm text-fuchsia-300 hover:underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </p>
 
                   {/* Submit Button */}
                   <button
