@@ -56,18 +56,109 @@ export async function createNote(userId, payload = {}) {
  *  - q: string (search query) — prefers text search if available
  *  - limit, skip: pagination
  */
-export async function getNotesForUser(userId, { includeDeleted = false, q, limit = 100, skip = 0 } = {}) {
+// src/services/notesService.js
+
+export async function getNotesForUser(
+  userId,
+  {
+    includeDeleted = false,
+    q,
+    limit = 100,
+    skip = 0,
+    filterType,
+    startDate,
+    endDate,
+    sortBy = "updatedAt",
+    sortOrder = "desc",
+  } = {}
+) {
   const filter = { user: userId };
   if (!includeDeleted) filter.isDeleted = false;
 
+  // --- 🔍 TEXT SEARCH (in heading + plainText) ---
   if (q && q.trim()) {
-    filter.$text = { $search: q.trim() };
+    const search = q.trim();
+    filter.$or = [
+      { heading: { $regex: search, $options: "i" } },
+      { plainText: { $regex: search, $options: "i" } },
+    ];
   }
 
-  const query = Note.find(filter).sort({ updatedAt: -1 }).skip(+skip).limit(+limit);
+  // --- 🗓️ DATE FILTERS (preset + custom) ---
+  if (filterType || startDate || endDate) {
+    const now = new Date();
+    let start, end;
+
+    switch (filterType) {
+      case "today":
+        start = new Date();
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+        end.setHours(23, 59, 59, 999);
+        break;
+
+      case "yesterday":
+        start = new Date();
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+        end.setDate(end.getDate() - 1);
+        end.setHours(23, 59, 59, 999);
+        break;
+
+      case "last_week":
+        start = new Date();
+        start.setDate(start.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+        end.setHours(23, 59, 59, 999);
+        break;
+
+      case "last_month":
+        start = new Date();
+        start.setMonth(start.getMonth() - 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+        end.setHours(23, 59, 59, 999);
+        break;
+
+      default:
+        // Advanced: specific date or date range from frontend
+        if (startDate && endDate) {
+          start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+        } else if (startDate) {
+          start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          end = new Date(startDate);
+          end.setHours(23, 59, 59, 999);
+        }
+        break;
+    }
+
+    if (start && end) {
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+  }
+
+  // --- 🧭 SORTING ---
+  const sortDirection = sortOrder === "asc" ? 1 : -1;
+  const sortField = ["createdAt", "updatedAt", "heading"].includes(sortBy)
+    ? sortBy
+    : "updatedAt";
+
+  // --- 🚀 Execute query ---
+  const query = Note.find(filter)
+    .sort({ [sortField]: sortDirection })
+    .skip(+skip)
+    .limit(+limit);
+
   const notes = await query.exec();
   return notes;
 }
+
 
 /**
  * Get a single note by id, ensuring it belongs to user and is not deleted
