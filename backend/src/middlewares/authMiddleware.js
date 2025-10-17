@@ -11,7 +11,14 @@ export default function authMiddleware(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: payload.sub, email: payload.email };
+
+    // ✅ Updated: include both _id and id for backward compatibility
+    req.user = {
+      _id: payload.sub,
+      id: payload.sub,
+      email: payload.email,
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ error: { message: "Invalid or expired token" } });

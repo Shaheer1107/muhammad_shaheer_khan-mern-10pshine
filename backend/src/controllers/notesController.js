@@ -26,7 +26,6 @@ function parseAttachmentsField(raw) {
       const parsed = JSON.parse(s);
       if (Array.isArray(parsed)) return parsed;
     } catch (e) {
-      // Not JSON — ignore, treat as undefined
       return undefined;
     }
   }
@@ -35,12 +34,6 @@ function parseAttachmentsField(raw) {
 
 /**
  * Create note
- * Accepts:
- *  - heading/title
- *  - contentHtml/content
- *  - contentJson (stringified or object)
- *  - Optional uploaded files in req.files (handled by multer)
- *  - Optional `attachments` field (array of existing URLs/metadata) — used as base
  */
 export async function createNoteHandler(req, res, next) {
   const log = getLog(req);
@@ -48,10 +41,9 @@ export async function createNoteHandler(req, res, next) {
     const userId = req.user?.id ?? req.user?._id;
     const heading = (req.body.heading ?? req.body.title ?? "").trim();
 
-    // contentJson might be a string (form-data) or object
     let contentJson = req.body.contentJson ?? null;
     if (typeof contentJson === "string" && contentJson.trim()) {
-      try { contentJson = JSON.parse(contentJson); } catch (e) { contentJson = null; }
+      try { contentJson = JSON.parse(contentJson); } catch { contentJson = null; }
     }
 
     const rawContentHtml = req.body.contentHtml ?? req.body.content ?? "";
@@ -61,16 +53,14 @@ export async function createNoteHandler(req, res, next) {
       "Creating note"
     );
 
-    // sanitize HTML and extract plainText for search
     const { clean: contentHtml, plainText } = sanitizeAndExtract(rawContentHtml);
 
-    // Parse attachments field (if client provided an attachments array)
     const attachmentsFromBody = parseAttachmentsField(req.body.attachments);
 
-    // Map uploaded files (if any) to attachment objects matching AttachmentSchema
+    // UPDATED: point URLs to /uploads/note_images/
     const uploadedAttachments = (req.files || []).map((f) => ({
       filename: f.filename,
-      url: `${req.protocol}://${req.get("host")}/uploads/${f.filename}`,
+      url: `${req.protocol}://${req.get("host")}/uploads/note_images/${f.filename}`,
       originalName: f.originalname,
       mimeType: f.mimetype,
       size: f.size,
@@ -78,11 +68,8 @@ export async function createNoteHandler(req, res, next) {
       uploadedBy: userId,
     }));
 
-    // Final attachments array: if client provided attachmentsFromBody use it as base (can be empty to clear),
-    // then append any newly uploaded files. If attachmentsFromBody is undefined and we have uploads, use uploads.
     let attachments;
     if (attachmentsFromBody !== undefined) {
-      // ensure items are in the expected shape (if client provided plain URLs, convert minimally)
       attachments = attachmentsFromBody.map((a) =>
         (typeof a === "string") ? { url: a } : a
       ).concat(uploadedAttachments);
@@ -160,37 +147,31 @@ export async function getNoteHandler(req, res, next) {
 
 /**
  * Update note
- * - Supports replacing/clearing/appending attachments
- * - If client sends `attachments` (array) it is used as base (can be empty to clear)
- * - Uploaded files in req.files are appended to the final attachments array
  */
 export async function updateNoteHandler(req, res, next) {
   const log = getLog(req);
   try {
     const userId = req.user?.id ?? req.user?._id;
     const { id } = req.params;
-
     const heading = (req.body.heading ?? req.body.title ?? "").trim();
 
-    // Parse contentJson if provided as string (form-data)
     let contentJson = req.body.contentJson ?? null;
     if (typeof contentJson === "string" && contentJson.trim()) {
-      try { contentJson = JSON.parse(contentJson); } catch (e) { contentJson = null; }
+      try { contentJson = JSON.parse(contentJson); } catch { contentJson = null; }
     }
 
     const rawContentHtml = req.body.contentHtml ?? req.body.content ?? "";
 
     log.info({ userId, noteId: id, action: "update_note_attempt" }, "Updating note");
 
-    // sanitize incoming HTML and extract plain text
     const { clean: contentHtml, plainText } = sanitizeAndExtract(rawContentHtml);
 
-    // attachments handling
     const attachmentsFromBody = parseAttachmentsField(req.body.attachments);
 
+    // UPDATED: point URLs to /uploads/note_images/
     const uploadedAttachments = (req.files || []).map((f) => ({
       filename: f.filename,
-      url: `${req.protocol}://${req.get("host")}/uploads/${f.filename}`,
+      url: `${req.protocol}://${req.get("host")}/uploads/note_images/${f.filename}`,
       originalName: f.originalname,
       mimeType: f.mimetype,
       size: f.size,
@@ -206,7 +187,7 @@ export async function updateNoteHandler(req, res, next) {
     } else if (uploadedAttachments.length > 0) {
       finalAttachments = uploadedAttachments;
     } else {
-      finalAttachments = undefined; // undefined -> do not modify attachments
+      finalAttachments = undefined;
     }
 
     const payload = {
