@@ -7,6 +7,8 @@ import ResetPassword from "../pages/Auth/ResetPassword";
 import PrivateRoute from "./PrivateRoute";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import NoteEditor from "../pages/Notes/NoteEditor";
+import UserProfile from "../pages/Profile/UserProfile";
+import ChangePassword from "../pages/Profile/ChangePassword";
 
 const AppRoutes = () => {
   return (
@@ -40,6 +42,23 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <UserProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/change_password"
+          element={
+            <PrivateRoute>
+              <ChangePassword />
+            </PrivateRoute>
+          }
+        />
+
         <Route path="/" element={<Login />} />
       </Routes>
     </Router>
