@@ -25,14 +25,6 @@
   overflow: hidden;
 }
 
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .line-clamp-4 {
   display: -webkit-box;
   -webkit-line-clamp: 4;
@@ -115,6 +107,7 @@
   content: "48";
 }
 
+/* Editor mode styles (light theme) */
 .ql-editor h1 {
   font-size: 2rem;
   font-weight: bold;
@@ -204,7 +197,7 @@
   padding: 0;
 }
 
-/* Dark theme for view mode */
+/* Display mode styles (dark theme) */
 .rich-text-content {
   color: #e5e7eb;
 }
@@ -300,6 +293,31 @@
   background: none;
   padding: 0;
   color: #f9fafb;
+}
+
+/* Text alignment styles for rich text content */
+.rich-text-content .ql-align-left,
+.rich-text-content p.ql-align-left,
+.rich-text-content div.ql-align-left {
+  text-align: left;
+}
+
+.rich-text-content .ql-align-center,
+.rich-text-content p.ql-align-center,
+.rich-text-content div.ql-align-center {
+  text-align: center;
+}
+
+.rich-text-content .ql-align-right,
+.rich-text-content p.ql-align-right,
+.rich-text-content div.ql-align-right {
+  text-align: right;
+}
+
+.rich-text-content .ql-align-justify,
+.rich-text-content p.ql-align-justify,
+.rich-text-content div.ql-align-justify {
+  text-align: justify;
 }
 
 /* Image modal styles */

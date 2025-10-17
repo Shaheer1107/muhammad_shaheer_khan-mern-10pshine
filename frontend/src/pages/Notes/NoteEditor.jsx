@@ -4,32 +4,48 @@ import { createNote, getNote, updateNote, deleteNote } from "../../services/note
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
+// ✅ Font whitelist
 const Font = ReactQuill.Quill.import("formats/font");
-Font.whitelist = ["sans-serif", "serif", "monospace", "arial", "times-new-roman", "courier-new"];
+Font.whitelist = [
+  "sans-serif",
+  "serif",
+  "monospace",
+  "arial",
+  "times-new-roman",
+  "courier-new",
+];
 ReactQuill.Quill.register(Font, true);
 
-// Custom size configuration with proper mapping
+// ✅ Size whitelist
 const Size = ReactQuill.Quill.import("attributors/style/size");
-Size.whitelist = ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"];
+Size.whitelist = [
+  "8px",
+  "10px",
+  "12px",
+  "14px",
+  "18px",
+  "24px",
+  "36px",
+  "48px",
+];
 ReactQuill.Quill.register(Size, true);
 
-// Create a custom size format that maps display values to actual sizes
-const CustomSize = ReactQuill.Quill.import("attributors/style/size");
-CustomSize.whitelist = ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"];
-ReactQuill.Quill.register(CustomSize, true);
-
-// ✅ Quill toolbar configuration
+// ✅ Toolbar configuration
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
     [{ font: Font.whitelist }],
-    [{ size: ["8px", "10px", "12px", "14px", "18px", "24px", "36px", "48px"] }],
+    [{ size: Size.whitelist }],
     ["bold", "italic", "underline", "strike"],
+    [{ color: [] }, { background: [] }], // 🎨 color pickers
+    [{ align: [] }],                     // 📐 alignment
     [{ list: "ordered" }, { list: "bullet" }],
-    ["link", "blockquote", "code-block", "clean"],
+    ["link", "blockquote", "code-block"],
+    ["clean"],
   ],
 };
 
+// ✅ Supported formats
 const formats = [
   "header",
   "font",
@@ -38,11 +54,15 @@ const formats = [
   "italic",
   "underline",
   "strike",
+  "color",
+  "background",
+  "align",
   "list",
   "link",
   "blockquote",
   "code-block",
 ];
+
 
 const NoteEditor = () => {
   const navigate = useNavigate();
@@ -249,7 +269,7 @@ const NoteEditor = () => {
             ) : (
               // ✅ UPDATED: Properly render saved rich text
               <div
-                className="rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
+                className="ql-editor rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             )}

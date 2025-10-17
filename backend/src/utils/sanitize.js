@@ -7,7 +7,7 @@ export const sanitizeOptions = {
   allowedTags: [
     "h1", "h2", "h3", "h4", "h5", "h6",
     "blockquote", "p", "a", "ul", "ol", "li",
-    "b", "i", "strong", "em", "strike", "u",
+    "b", "i", "strong", "em", "strike", "u", "s",
     "code", "pre", "img", "table", "thead", "tbody", "tr", "td", "th",
     "span", "div", "br"
   ],
