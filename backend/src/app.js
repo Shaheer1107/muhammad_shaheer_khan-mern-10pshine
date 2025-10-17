@@ -22,6 +22,7 @@ const app = express();
 // Resolve __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, "../.env") }); 
 
 // ✅ Enable CORS for frontend (React Vite default: http://localhost:5173)
 app.use(
