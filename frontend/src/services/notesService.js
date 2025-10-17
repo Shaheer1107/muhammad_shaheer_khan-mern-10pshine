@@ -1,10 +1,58 @@
 import api from "./api";
 
 /**
- * Fetch all notes for the logged-in user
+ * Fetch all notes for the logged-in user (with optional search + filter)
+ * @param {Object} options - Optional parameters
+ * @param {string} [options.q] - Search query
+ * @param {string} [options.filterType] - Filter type (e.g., "today", "last_7_days", "last_month")
+ * @param {number} [options.limit] - Max number of notes to fetch
+ * @param {number} [options.skip] - Number of notes to skip (for pagination)
  */
-export const getNotes = async () => {
-  const res = await api.get("/notes");
+// Updated getNotes with sort + date range support
+export const getNotes = async ({
+  q,
+  filterType,
+  limit,
+  skip,
+  sortBy,
+  sortOrder,
+  startDate,
+  endDate,
+} = {}) => {
+  const params = new URLSearchParams();
+
+  // Search & preset filter
+  if (typeof q !== "undefined" && q !== null && q !== "") params.append("q", q);
+  if (typeof filterType !== "undefined" && filterType !== null && filterType !== "")
+    params.append("filterType", filterType);
+
+  // Pagination: allow 0 as valid value
+  if (typeof limit !== "undefined" && limit !== null) params.append("limit", String(limit));
+  if (typeof skip !== "undefined" && skip !== null) params.append("skip", String(skip));
+
+  // Sorting
+  if (typeof sortBy !== "undefined" && sortBy !== null && sortBy !== "")
+    params.append("sortBy", sortBy);
+  if (typeof sortOrder !== "undefined" && sortOrder !== null && sortOrder !== "")
+    params.append("sortOrder", sortOrder);
+
+  // Date range: accept Date or string; normalize to YYYY-MM-DD
+  const normalizeDate = (d) => {
+    if (!d && d !== 0) return null;
+    if (d instanceof Date && !Number.isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0]; // YYYY-MM-DD
+    }
+    // assume string already in a valid format (backend expects YYYY-MM-DD)
+    return String(d);
+  };
+
+  const s = normalizeDate(startDate);
+  const e = normalizeDate(endDate);
+  if (s) params.append("startDate", s);
+  if (e) params.append("endDate", e);
+
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+  const res = await api.get(`/notes${queryString}`);
   return res.data;
 };
 
