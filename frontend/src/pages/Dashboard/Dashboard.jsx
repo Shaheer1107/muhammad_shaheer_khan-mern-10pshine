@@ -14,8 +14,14 @@ const Dashboard = () => {
     setError("");
     try {
       const data = await getNotes();
-      setNotes(Array.isArray(data) ? data : data.notes || []);
+      const notesArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.notes)
+        ? data.notes
+        : [];
+      setNotes(notesArray);
     } catch (err) {
+      console.error("Failed to fetch notes:", err);
       setError(
         err?.response?.data?.message ||
           "Could not fetch notes. Please try again later."
@@ -26,7 +32,6 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    // Clear auth tokens or session here
     localStorage.removeItem("token");
     navigate("/login");
   };
@@ -36,11 +41,9 @@ const Dashboard = () => {
   }, []);
 
   return (
-    // use w-full + min-w-0 and ensure overflow-x-hidden to prevent horizontal scrollbar
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden box-border bg-gradient-to-br from-indigo-950 via-purple-950 to-fuchsia-900">
-      {/* Decorative background elements - FIXED to viewport (clipped by overflow-hidden) */}
+      {/* Background decoration */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        {/* positioned shapes kept within the fixed container so they won't cause horizontal scroll */}
         <div className="absolute -top-24 left-0 h-72 w-72 rounded-full bg-fuchsia-400/10 blur-3xl translate-x-[-6rem] sm:translate-x-0" />
         <div className="absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl translate-x-[6rem] sm:translate-x-0" />
         <div className="absolute top-1/3 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rotate-12 rounded-3xl bg-gradient-to-tr from-purple-300/10 to-transparent blur-2xl" />
@@ -93,7 +96,6 @@ const Dashboard = () => {
                 </svg>
               </button>
 
-              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 sm:px-6 sm:py-3 font-semibold text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 hover:border-red-500/50"
@@ -113,7 +115,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Content */}
+          {/* Notes Content */}
           <div className="rounded-3xl bg-white/5 backdrop-blur-xl p-4 sm:p-6 ring-1 ring-white/10">
             {loading ? (
               <div className="flex items-center justify-center py-16">
