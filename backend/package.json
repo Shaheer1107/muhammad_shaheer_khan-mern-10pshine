@@ -13,6 +13,13 @@
     "test:forgot-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/forgotPassword.test.js",
     "test:reset-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/resetPassword.test.js",
     "test:auth": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/auth/*.test.js\"",
+    "test:notes": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/notes/*.test.js\"",
+    "test:notes:create": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/create.test.js",
+    "test:notes:list": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/list.test.js",
+    "test:notes:get": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/get.test.js",
+    "test:notes:update": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/update.test.js",
+    "test:notes:delete": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/delete.test.js",
+    "test:notes:service": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/notes/notesService.test.js",
     "start": "node src/server.js",
     "dev": "nodemon --watch src --exec \"node src/server.js\""
   },
