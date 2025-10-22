@@ -4,7 +4,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "cross-env NODE_ENV=test mocha --timeout 10000 \"test/**/*.test.js\"",
+    "test": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/**/*.test.js\"",
+    "test:file": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000",
+    "test:login": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/login.test.js",
+    "test:register": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/register.test.js",
+    "test:refresh": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/refresh.test.js",
+    "test:logout": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/logout.test.js",
+    "test:forgot-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/forgotPassword.test.js",
+    "test:reset-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/resetPassword.test.js",
+    "test:auth": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/auth/*.test.js\"",
     "start": "node src/server.js",
     "dev": "nodemon --watch src --exec \"node src/server.js\""
   },
