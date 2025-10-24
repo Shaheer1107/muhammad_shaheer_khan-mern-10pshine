@@ -14,7 +14,11 @@
     "test:Login": "jest test/auth/Login.test.jsx",
     "test:Signup": "jest test/auth/Signup.test.jsx",
     "test:AuthContext": "jest test/auth/AuthContext.test.jsx",
-    "test:auth": "jest test/auth"
+    "test:auth": "jest test/auth",
+    "test:notes": "jest test/notes --passWithNoTests",
+    "test:dashboard": "jest test/notes/Dashboard.test.jsx --passWithNoTests",
+    "test:notecard": "jest test/notes/NoteCard.test.jsx --passWithNoTests",
+    "test:noteslist": "jest test/notes/NotesList.test.jsx --passWithNoTests"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
@@ -28,6 +32,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
+    "@babel/plugin-syntax-import-meta": "^7.10.4",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "@eslint/js": "^9.36.0",
@@ -38,6 +43,7 @@
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
     "babel-jest": "^30.2.0",
+    "babel-plugin-transform-import-meta": "^2.3.3",
     "cross-env": "^10.1.0",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
