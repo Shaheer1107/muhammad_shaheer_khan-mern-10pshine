@@ -4,7 +4,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/**/*.test.js\"",
+    "test:file": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000",
+    "test:login": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/login.test.js",
+    "test:register": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/register.test.js",
+    "test:refresh": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/refresh.test.js",
+    "test:logout": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/logout.test.js",
+    "test:forgot-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/forgotPassword.test.js",
+    "test:reset-password": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 test/auth/resetPassword.test.js",
+    "test:auth": "cross-env NODE_ENV=test mocha --file test/setup.js --timeout 10000 \"test/auth/*.test.js\"",
     "start": "node src/server.js",
     "dev": "nodemon --watch src --exec \"node src/server.js\""
   },
@@ -34,7 +42,14 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "chai": "^6.2.0",
+    "chai-http": "^5.1.2",
+    "cross-env": "^10.1.0",
+    "mocha": "^11.7.4",
+    "mongodb-memory-server": "^10.2.3",
     "nodemon": "^3.1.10",
-    "pino-pretty": "^13.1.2"
+    "pino-pretty": "^13.1.2",
+    "sinon": "^21.0.0",
+    "supertest": "^7.1.4"
   }
 }
