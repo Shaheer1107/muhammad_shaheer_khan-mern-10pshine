@@ -27,7 +27,22 @@ const Dashboard = () => {
     profileImage: null,
   });
 
-  const API_URL = import.meta.env.VITE_API_URL;
+let API_URL;
+
+try {
+  // Works in Vite or browser
+  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) {
+    API_URL = import.meta.env.VITE_API_URL;
+  } else if (typeof process !== "undefined" && process.env.VITE_API_URL) {
+    // Works in Jest or Node
+    API_URL = process.env.VITE_API_URL;
+  } else {
+    API_URL = "http://localhost:5000/api";
+  }
+} catch {
+  API_URL = process.env.VITE_API_URL || "http://localhost:5000/api";
+}
+
   const BASE_URL = API_URL.replace(/\/api$/, "");
 
   // --- Fetch User Data ---
