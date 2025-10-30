@@ -22,6 +22,11 @@ export const uploadProfileImage = async (file) => {
   return response.data;
 };
 
+export const deleteProfileImage = async () => {
+  const response = await api.delete("/user/me/upload");
+  return response.data;
+};
+
 export const changeUserPassword = async (currentPassword, newPassword) => {
   const response = await api.put("/user/me/change-password", {
     currentPassword,
