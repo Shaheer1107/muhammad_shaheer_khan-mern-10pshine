@@ -138,9 +138,13 @@ export async function getNotesForUser(
         break;
     }
 
-    if (start && end) {
-      filter.createdAt = { $gte: start, $lte: end };
-    }
+    // 🗓️ Apply date filter dynamically based on sortBy field
+if (start && end) {
+  const dateField =
+    sortBy === "updatedAt" ? "updatedAt" : "createdAt";
+  filter[dateField] = { $gte: start, $lte: end };
+}
+
   }
 
   // --- 🧭 SORTING ---
