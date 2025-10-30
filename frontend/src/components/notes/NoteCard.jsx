@@ -63,9 +63,52 @@ const NoteCard = ({ note, onRefresh }) => {
 
   return (
     <>
+      <style>{`
+        .ql-font-arial { font-family: Arial, sans-serif !important; }
+        .ql-font-georgia { font-family: Georgia, serif !important; }
+        .ql-font-impact { font-family: Impact, sans-serif !important; }
+        .ql-font-tahoma { font-family: Tahoma, sans-serif !important; }
+        .ql-font-times-new-roman { font-family: 'Times New Roman', serif !important; }
+        .ql-font-verdana { font-family: Verdana, sans-serif !important; }
+        .ql-font-courier-new { font-family: 'Courier New', monospace !important; }
+        .ql-font-comic-sans { font-family: 'Comic Sans MS', cursive !important; }
+        .ql-font-palatino { font-family: 'Palatino Linotype', serif !important; }
+        .ql-font-garamond { font-family: Garamond, serif !important; }
+        .ql-font-bookman { font-family: 'Bookman Old Style', serif !important; }
+        .ql-font-trebuchet { font-family: 'Trebuchet MS', sans-serif !important; }
+
+        .note-card-content .rich-text-content * {
+          color: inherit;
+        }
+
+        .note-card-content .rich-text-content a {
+          color: #a78bfa;
+          text-decoration: underline;
+        }
+
+        .note-card-content .rich-text-content code {
+          background-color: rgba(255, 255, 255, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+        }
+
+        .note-card-content .rich-text-content blockquote {
+          border-left: 4px solid rgba(255, 255, 255, 0.3);
+          padding-left: 16px;
+          margin-left: 0;
+          font-style: italic;
+        }
+
+        .note-card-content .rich-text-content ul,
+        .note-card-content .rich-text-content ol {
+          padding-left: 1.5em;
+        }
+      `}</style>
+
       <div
         onClick={handleCardClick}
-        className="ql-editor group relative h-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)] hover:-translate-y-1"
+        className="group relative h-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.15)] hover:-translate-y-1"
       >
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-fuchsia-500/20 via-violet-500/20 to-indigo-500/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -90,10 +133,10 @@ const NoteCard = ({ note, onRefresh }) => {
             </div>
           </div>
 
-          <div className="flex-1 text-sm text-white/80 overflow-hidden">
+          <div className="flex-1 text-sm text-white/80 overflow-hidden note-card-content">
             {contentHtml ? (
               <div
-                className="line-clamp-4 leading-relaxed rich-text-content max-w-none"
+                className="ql-editor line-clamp-4 leading-relaxed rich-text-content max-w-none"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             ) : (

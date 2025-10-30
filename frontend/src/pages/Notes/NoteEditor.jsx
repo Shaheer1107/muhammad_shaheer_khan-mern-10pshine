@@ -1,32 +1,42 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { createNote, getNote, updateNote, deleteNote } from "../../services/notesService";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
-// ✅ Font whitelist
+// ✅ Font whitelist with proper font families
 const Font = ReactQuill.Quill.import("formats/font");
 Font.whitelist = [
-  "sans-serif",
-  "serif",
-  "monospace",
   "arial",
+  "georgia",
+  "impact",
+  "tahoma",
   "times-new-roman",
+  "verdana",
   "courier-new",
+  "comic-sans",
+  "palatino",
+  "garamond",
+  "bookman",
+  "trebuchet"
 ];
 ReactQuill.Quill.register(Font, true);
 
-// ✅ Size whitelist
+// ✅ Size whitelist with proper values
 const Size = ReactQuill.Quill.import("attributors/style/size");
 Size.whitelist = [
-  "8px",
   "10px",
   "12px",
   "14px",
+  "16px",
   "18px",
+  "20px",
   "24px",
+  "28px",
+  "32px",
   "36px",
-  "48px",
+  "42px",
+  "48px"
 ];
 ReactQuill.Quill.register(Size, true);
 
@@ -37,8 +47,8 @@ const modules = {
     [{ font: Font.whitelist }],
     [{ size: Size.whitelist }],
     ["bold", "italic", "underline", "strike"],
-    [{ color: [] }, { background: [] }], // 🎨 color pickers
-    [{ align: [] }],                     // 📐 alignment
+    [{ color: [] }, { background: [] }],
+    [{ align: [] }],
     [{ list: "ordered" }, { list: "bullet" }],
     ["link", "blockquote", "code-block"],
     ["clean"],
@@ -63,14 +73,17 @@ const formats = [
   "code-block",
 ];
 
-
 const NoteEditor = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
   const isNew = !id || id === "new";
+  const quillRef = useRef(null);
 
-  const baseURL = "http://localhost:5000"; // ✅ image base URL
+  const baseURL = "http://localhost:5000";
+
+  const searchParams = new URLSearchParams(location.search);
+  const editParam = searchParams.get('edit') === 'true';
 
   const [heading, setHeading] = useState("");
   const [contentHtml, setContentHtml] = useState("");
@@ -79,15 +92,15 @@ const NoteEditor = () => {
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
-  const [isEditing, setIsEditing] = useState(isNew);
+  const [isEditing, setIsEditing] = useState(isNew || editParam);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [editorKey, setEditorKey] = useState(0); // Key to force remount
 
-  // ✅ Load note if editing/viewing existing one
   useEffect(() => {
     if (!isNew) {
       setLoading(true);
@@ -95,8 +108,16 @@ const NoteEditor = () => {
         .then((data) => {
           const note = data.note || data;
           setHeading(note.heading || "");
-          setContentHtml(note.contentHtml || "");
+          
+          // Store the HTML content
+          const htmlContent = note.contentHtml || "";
+          setContentHtml(htmlContent);
           setPlainText(note.plainText || "");
+
+          // If we have contentJson, use it; otherwise let Quill parse the HTML
+          if (note.contentJson && typeof note.contentJson === 'object') {
+            setContentJson(note.contentJson);
+          }
 
           const attachments = note.attachments ?? note.images ?? [];
           const imgs = attachments
@@ -123,7 +144,13 @@ const NoteEditor = () => {
     }
   }, [id, isNew]);
 
-  // ✅ Image handling
+  // Force editor to remount when switching to edit mode
+  useEffect(() => {
+    if (isEditing && !isNew) {
+      setEditorKey(prev => prev + 1);
+    }
+  }, [isEditing, isNew]);
+
   const handleImageChange = (e) => setNewImages([...newImages, ...e.target.files]);
   const handleRemoveNewImage = (index) => setNewImages(newImages.filter((_, i) => i !== index));
   const handleRemoveExistingImage = (url) => {
@@ -131,13 +158,11 @@ const NoteEditor = () => {
     setExistingImages(existingImages.filter((i) => i !== url));
   };
 
-  // ✅ Carousel navigation
   const allImages = [...existingImages, ...newImages.map(img => URL.createObjectURL(img))];
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
   const goToImage = (index) => setCurrentImageIndex(index);
 
-  // ✅ Save note
   const handleSave = async () => {
     if (!heading.trim() && !contentHtml.trim()) return setError("Note cannot be empty.");
 
@@ -154,7 +179,6 @@ const NoteEditor = () => {
       formData.append("attachments", JSON.stringify([]));
     }
 
-    // ✅ match backend multer field name ("images")
     newImages.forEach((f) => formData.append("images", f));
 
     if (imagesToDelete.length) formData.append("imagesToDelete", JSON.stringify(imagesToDelete));
@@ -173,7 +197,6 @@ const NoteEditor = () => {
     }
   };
 
-  // ✅ Delete note
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -195,6 +218,153 @@ const NoteEditor = () => {
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl" />
       </div>
 
+      {/* Custom styles for fonts and quill editor */}
+      <style>{`
+        /* Font Picker - Increase width for full text display */
+        .ql-snow .ql-picker.ql-font {
+          min-width: 160px !important;
+        }
+        
+        .ql-snow .ql-picker.ql-font .ql-picker-label {
+          padding-left: 10px !important;
+          padding-right: 30px !important;
+        }
+
+        /* Font Family Styles */
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+          content: 'Arial';
+          font-family: Arial, sans-serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+          content: 'Georgia';
+          font-family: Georgia, serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before {
+          content: 'Impact';
+          font-family: Impact, sans-serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before {
+          content: 'Tahoma';
+          font-family: Tahoma, sans-serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+          content: 'Times New Roman';
+          font-family: 'Times New Roman', serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
+          content: 'Verdana';
+          font-family: Verdana, sans-serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier-new"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier-new"]::before {
+          content: 'Courier New';
+          font-family: 'Courier New', monospace;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="comic-sans"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="comic-sans"]::before {
+          content: 'Comic Sans';
+          font-family: 'Comic Sans MS', cursive;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="palatino"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]::before {
+          content: 'Palatino';
+          font-family: 'Palatino Linotype', serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="garamond"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]::before {
+          content: 'Garamond';
+          font-family: Garamond, serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="bookman"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="bookman"]::before {
+          content: 'Bookman';
+          font-family: 'Bookman Old Style', serif;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="trebuchet"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]::before {
+          content: 'Trebuchet';
+          font-family: 'Trebuchet MS', sans-serif;
+        }
+
+        .ql-font-arial { font-family: Arial, sans-serif; }
+        .ql-font-georgia { font-family: Georgia, serif; }
+        .ql-font-impact { font-family: Impact, sans-serif; }
+        .ql-font-tahoma { font-family: Tahoma, sans-serif; }
+        .ql-font-times-new-roman { font-family: 'Times New Roman', serif; }
+        .ql-font-verdana { font-family: Verdana, sans-serif; }
+        .ql-font-courier-new { font-family: 'Courier New', monospace; }
+        .ql-font-comic-sans { font-family: 'Comic Sans MS', cursive; }
+        .ql-font-palatino { font-family: 'Palatino Linotype', serif; }
+        .ql-font-garamond { font-family: Garamond, serif; }
+        .ql-font-bookman { font-family: 'Bookman Old Style', serif; }
+        .ql-font-trebuchet { font-family: 'Trebuchet MS', sans-serif; }
+
+        /* Size Picker - Uniform display like MS Word */
+        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item::before {
+          font-size: 14px !important;
+        }
+
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="10px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="10px"]::before {
+          content: '10';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before {
+          content: '12';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before {
+          content: '14';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before {
+          content: '16';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before {
+          content: '18';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before {
+          content: '20';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24px"]::before {
+          content: '24';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="28px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="28px"]::before {
+          content: '28';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="32px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="32px"]::before {
+          content: '32';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="36px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="36px"]::before {
+          content: '36';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="42px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="42px"]::before {
+          content: '42';
+        }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="48px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="48px"]::before {
+          content: '48';
+        }
+
+        .quill-editor .ql-container {
+          min-height: 300px;
+        }
+      `}</style>
+
       {/* Main Content */}
       <div className="relative z-10 px-4 py-6 sm:px-6 lg:px-8 w-full">
         <div className="mx-auto max-w-4xl w-full space-y-6">
@@ -205,12 +375,20 @@ const NoteEditor = () => {
             </h1>
             <div className="flex gap-3">
               {!isNew && !isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white hover:bg-white/20"
-                >
-                  Edit
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white hover:bg-white/20"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-red-400 hover:bg-red-500/20 hover:border-red-500/50"
+                  >
+                    Delete
+                  </button>
+                </>
               )}
               <button
                 onClick={() => navigate("/dashboard")}
@@ -229,6 +407,13 @@ const NoteEditor = () => {
               )}
             </div>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400">
+              {error}
+            </div>
+          )}
 
           {/* Title */}
           <div>
@@ -254,7 +439,9 @@ const NoteEditor = () => {
             {isEditing ? (
               <div className="bg-white rounded-xl overflow-hidden">
                 <ReactQuill
-                  value={contentHtml}
+                  key={editorKey}
+                  ref={quillRef}
+                  defaultValue={contentHtml}
                   onChange={(html, delta, source, editor) => {
                     setContentHtml(html);
                     setContentJson(editor.getContents());
@@ -267,7 +454,6 @@ const NoteEditor = () => {
                 />
               </div>
             ) : (
-              // ✅ UPDATED: Properly render saved rich text
               <div
                 className="ql-editor rounded-xl border border-white/20 bg-zinc-800/80 text-white px-4 py-4 min-h-[16rem] rich-text-content"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -275,7 +461,7 @@ const NoteEditor = () => {
             )}
           </div>
 
-          {/* ✅ Images Section */}
+          {/* Images Section */}
           <div>
             <label className="text-white/80 text-sm mb-2 block">Images</label>
 
@@ -403,30 +589,70 @@ const NoteEditor = () => {
         </div>
       </div>
 
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 p-6 rounded-2xl max-w-sm w-full text-white">
-            <p>Are you sure you want to delete this note?</p>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 border border-white/30 py-2 rounded-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-slate-900/95 p-6 shadow-2xl ring-1 ring-white/10">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-red-400">
+                  <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Delete Note</h3>
+                <p className="text-sm text-white/70">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="mb-6 text-white/80">
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-white">"{heading || 'this note'}"</span>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
+              >
                 Cancel
               </button>
-              <button onClick={handleDelete} disabled={isDeleting} className="flex-1 bg-red-500 py-2 rounded-lg">
-                {isDeleting ? "Deleting..." : "Delete"}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Deleting...
+                  </div>
+                ) : (
+                  "Delete"
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Image Modal */}
       {selectedImage && (
-        <div className="image-modal" onClick={() => setSelectedImage(null)}>
-          <img src={selectedImage} alt="Full size" onClick={(e) => e.stopPropagation()} />
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm cursor-pointer"
+          onClick={() => setSelectedImage(null)}
+        >
+          <img 
+            src={selectedImage} 
+            alt="Full size" 
+            className="max-w-[90vw] max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()} 
+          />
           <button
-            className="image-modal-close"
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors"
             onClick={() => setSelectedImage(null)}
           >
-            ✕
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       )}
