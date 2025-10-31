@@ -14,6 +14,7 @@ import authRoutes from "./routes/auth.js";
 import notesRoutes from "./routes/notesRoutes.js";
 import userRoutes from "./routes/user.js";
 import uploadsRoutes from "./routes/uploads.js"; // <--- uploads route
+import generateNoteRoute from "./routes/generateNote.js"
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/uploads", uploadsRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/ai", generateNoteRoute);
 
 // Centralized error handler (must be last)
 app.use(errorHandler);
