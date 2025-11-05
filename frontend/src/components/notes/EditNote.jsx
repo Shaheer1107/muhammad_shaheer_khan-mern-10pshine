@@ -93,6 +93,13 @@ const EditNote = ({
   const [selectedImage, setSelectedImage] = useState(null);
   const [editorKey, setEditorKey] = useState(0);
 
+  // AI Generation states
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateTopic, setGenerateTopic] = useState("");
+  const [generateStyle, setGenerateStyle] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
+
   useEffect(() => {
     if (!isNew) {
       setEditorKey((prev) => prev + 1);
@@ -112,6 +119,74 @@ const EditNote = ({
     ...existingImages,
     ...newImages.map((img) => URL.createObjectURL(img)),
   ];
+
+const handleGenerateNote = async () => {
+  if (!generateTopic.trim()) {
+    setGenerateError("Please enter a topic");
+    return;
+  }
+
+  setIsGenerating(true);
+  setGenerateError("");
+
+  try {
+    const response = await fetch("http://localhost:5000/api/ai/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        topic: generateTopic,
+        style: generateStyle,
+        max_new_tokens: 300,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Show the actual error message from backend
+      throw new Error(data.error || "Failed to generate note");
+    }
+
+    const generatedNote = data.note || "";
+
+    if (!generatedNote.trim()) {
+      throw new Error("AI returned empty content. Please try again.");
+    }
+
+    // Convert plain text to HTML with proper formatting
+    const formattedHtml = generatedNote
+      .split("\n\n")
+      .filter((para) => para.trim()) // Remove empty paragraphs
+      .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .join("");
+
+    // Set the generated content in the editor
+    setContentHtml(formattedHtml);
+
+    // If heading is empty, set it to the topic
+    if (!heading.trim()) {
+      setHeading(generateTopic);
+    }
+
+    // Update plainText
+    setPlainText(generatedNote);
+
+    // Close modal
+    setShowGenerateModal(false);
+    setGenerateTopic("");
+    setGenerateStyle("");
+
+    // Force editor refresh
+    setEditorKey((prev) => prev + 1);
+  } catch (err) {
+    console.error("Generate error:", err);
+    setGenerateError(err.message || "Failed to generate note. Please try again.");
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const handleSave = async () => {
     if (!heading.trim() && !contentHtml.trim())
@@ -306,6 +381,27 @@ const EditNote = ({
               {isNew ? "Create Note" : "Edit Note"}
             </h1>
             <div className="flex gap-3">
+              {isNew && (
+                <button
+                  onClick={() => setShowGenerateModal(true)}
+                  className="rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 px-4 py-2 text-white font-semibold hover:opacity-90 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                  Generate Note
+                </button>
+              )}
               <button
                 onClick={() => navigate("/dashboard")}
                 className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white hover:bg-white/20"
@@ -336,6 +432,7 @@ const EditNote = ({
               value={heading}
               onChange={(e) => setHeading(e.target.value)}
               className="w-full rounded-xl bg-zinc-800/80 text-white px-4 py-3 border border-white/20 focus:border-fuchsia-400 outline-none"
+              placeholder="Enter note title..."
             />
           </div>
 
@@ -345,7 +442,7 @@ const EditNote = ({
               <ReactQuill
                 key={editorKey}
                 ref={quillRef}
-                defaultValue={contentHtml}
+                value={contentHtml}
                 onChange={(html, delta, source, editor) => {
                   setContentHtml(html);
                   setContentJson(editor.getContents());
@@ -415,6 +512,109 @@ const EditNote = ({
         </div>
       </div>
 
+      {/* Generate Note Modal */}
+      {showGenerateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-lg rounded-2xl bg-slate-900/95 p-6 shadow-2xl ring-1 ring-white/10">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/20">
+                <svg
+                  className="w-5 h-5 text-violet-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  Generate Note with AI
+                </h3>
+                <p className="text-sm text-white/70">
+                  Let AI create a note for you
+                </p>
+              </div>
+            </div>
+
+            {generateError && (
+              <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400 text-sm">
+                {generateError}
+              </div>
+            )}
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">
+                  Topic <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={generateTopic}
+                  onChange={(e) => setGenerateTopic(e.target.value)}
+                  placeholder="e.g., Photosynthesis, World War II, Python Basics"
+                  className="w-full rounded-xl bg-zinc-800/80 text-white px-4 py-3 border border-white/20 focus:border-violet-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">
+                  Tone/Style (Optional)
+                </label>
+                <select
+                  value={generateStyle}
+                  onChange={(e) => setGenerateStyle(e.target.value)}
+                  className="w-full rounded-xl bg-zinc-800/80 text-white px-4 py-3 border border-white/20 focus:border-violet-400 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="formal">Formal</option>
+                  <option value="casual">Casual</option>
+                  <option value="detailed">Detailed</option>
+                  <option value="simple">Simple</option>
+                  <option value="technical">Technical</option>
+                  <option value="creative">Creative</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowGenerateModal(false);
+                  setGenerateTopic("");
+                  setGenerateStyle("");
+                  setGenerateError("");
+                }}
+                disabled={isGenerating}
+                className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerateNote}
+                disabled={isGenerating || !generateTopic.trim()}
+                className="flex-1 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Generating...
+                  </div>
+                ) : (
+                  "Generate"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Modal */}
       {selectedImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm cursor-pointer"
