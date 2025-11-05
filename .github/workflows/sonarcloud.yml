@@ -3,11 +3,11 @@ name: SonarCloud Scan
 on:
   push:
     branches:
-      - main
+      - feature/frontend/note-generation-AI
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - main
+      - feature/frontend/note-generation-AI
 
 jobs:
   sonarcloud:
