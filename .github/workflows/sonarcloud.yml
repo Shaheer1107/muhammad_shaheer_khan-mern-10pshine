@@ -1,54 +1,51 @@
-name: SonarCloud Scan
+name: SonarCloud Analysis
 
 on:
   push:
     branches:
-      - feature/frontend/note-generation-AI
+      - feature/frontend/note-generation-AI  # 👈 your branch name
   pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - feature/frontend/note-generation-AI
 
 jobs:
   sonarcloud:
-    name: SonarCloud Scan
-    runs-on: ubuntu-latest
+    name: Analyze with SonarCloud
+    runs-on: ubuntu-latest   # ✅ GitHub Actions runner (Linux is fine, even if you use Windows locally)
 
     steps:
-      # ✅ Checkout repository
-      - name: Checkout code
+      # Step 1: Checkout your code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for SonarCloud to analyze full history
+          fetch-depth: 0   # Required for SonarCloud to see the full commit history
 
-      # ✅ Set up Node.js (you can change version if needed)
-      - name: Set up Node.js
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'
 
-      # ✅ Install backend dependencies
+      # Step 3: Install backend dependencies
       - name: Install backend dependencies
-        working-directory: backend
+        working-directory: ./backend
         run: npm install
 
-      # ✅ Install frontend dependencies
+      # Step 4: Install frontend dependencies
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: ./frontend
         run: npm install
 
-      # ✅ Optional: Run tests (uncomment if you have test scripts)
+      # (Optional) Step 5: Run tests to generate coverage files
       # - name: Run backend tests
-      #   working-directory: backend
+      #   working-directory: ./backend
       #   run: npm test -- --coverage
       #
       # - name: Run frontend tests
-      #   working-directory: frontend
-      #   run: npm test -- --coverage
+      #   working-directory: ./frontend
+      #   run: npm test -- --coverage --watchAll=false
 
-      # ✅ Run SonarCloud Scan
-      - name: Run SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+      # Step 6: Run SonarCloud analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Provided by GitHub
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # You created this in repo secrets
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
