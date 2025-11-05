@@ -2,77 +2,53 @@ name: SonarCloud Scan
 
 on:
   push:
-    branches: [ feature/frontend/note-generation-AI ]
+    branches:
+      - main
   pull_request:
-    branches: [ feature/frontend/note-generation-AI ]
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
   sonarcloud:
-    name: Analyze with SonarCloud
+    name: SonarCloud Scan
     runs-on: ubuntu-latest
+
     steps:
+      # ✅ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Required for SonarCloud to analyze full history
 
-      - name: Setup Node.js
+      # ✅ Set up Node.js (you can change version if needed)
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
-      - name: Install root dependencies if present
-        run: |
-          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-            npm ci
-          else
-            echo "No root lockfile - skipping"
-          fi
-
+      # ✅ Install backend dependencies
       - name: Install backend dependencies
-        run: |
-          if [ -d backend ]; then
-            cd backend
-            if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-              npm ci
-            else
-              npm install
-            fi
-          else
-            echo "No backend folder - skipping"
-          fi
+        working-directory: backend
+        run: npm install
 
+      # ✅ Install frontend dependencies
       - name: Install frontend dependencies
-        run: |
-          if [ -d frontend ]; then
-            cd frontend
-            if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-              npm ci
-            else
-              npm install
-            fi
-          else
-            echo "No frontend folder - skipping"
-          fi
+        working-directory: frontend
+        run: npm install
 
-      - name: (Optional) Run tests to produce coverage
-        run: |
-          if [ -d frontend ] && [ -f frontend/package.json ]; then
-            cd frontend && npm run test -- --coverage || true
-            cd ..
-          fi
-          if [ -d backend ] && [ -f backend/package.json ]; then
-            cd backend && npm run test -- --coverage || true
-          fi
+      # ✅ Optional: Run tests (uncomment if you have test scripts)
+      # - name: Run backend tests
+      #   working-directory: backend
+      #   run: npm test -- --coverage
+      #
+      # - name: Run frontend tests
+      #   working-directory: frontend
+      #   run: npm test -- --coverage
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v1
+      # ✅ Run SonarCloud Scan
+      - name: Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }}
-            -Dsonar.sources=frontend,backend
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
-            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info,backend/coverage/lcov.info
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Provided by GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # You created this in repo secrets
