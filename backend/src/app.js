@@ -25,7 +25,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load .env from project root (one level above src)
-dotenv.config({ path: path.join(__dirname, "../.env") });
+// dotenv.config({ path: path.join(__dirname, "../.env") });
 
 // ✅ Enable CORS for frontend (React Vite default: http://localhost:5173)
 app.use(
