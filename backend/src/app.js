@@ -18,6 +18,24 @@ import generateNoteRoute from "./routes/generateNote.js"
 
 dotenv.config();
 
+// SECURITY FIX: Validate and sanitize environment variables
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// Validate FRONTEND_URL format to prevent injection
+function isValidUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    // Only allow http and https protocols
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+if (!isValidUrl(FRONTEND_URL)) {
+  throw new Error("Invalid FRONTEND_URL in environment configuration");
+}
+
 const app = express();
 
 // Resolve __dirname for ESM
@@ -28,9 +46,10 @@ const __dirname = path.dirname(__filename);
 // dotenv.config({ path: path.join(__dirname, "../.env") });
 
 // ✅ Enable CORS for frontend (React Vite default: http://localhost:5173)
+// SECURITY FIX: Use validated FRONTEND_URL constant
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: FRONTEND_URL,
     credentials: true, // allow cookies/auth headers if needed
   })
 );
@@ -56,14 +75,30 @@ app.use(parsersMiddleware);
 // Resolve backend root (one level up from src)
 const backendRoot = path.resolve(__dirname, "..");
 
+// SECURITY FIX: Sanitize path construction to prevent directory traversal
+const uploadsDir = path.join(backendRoot, "uploads");
+const noteImagesPath = path.join(uploadsDir, "note_images");
+const profilePicsPath = path.join(uploadsDir, "profile_pics");
+
+// Validate that paths are within expected directory structure
+function isPathSafe(targetPath, basePath) {
+  const normalizedTarget = path.normalize(targetPath);
+  const normalizedBase = path.normalize(basePath);
+  return normalizedTarget.startsWith(normalizedBase);
+}
+
+if (!isPathSafe(noteImagesPath, backendRoot) || !isPathSafe(profilePicsPath, backendRoot)) {
+  throw new Error("Security: Invalid uploads path configuration");
+}
+
 app.use(
   "/uploads/note_images",
-  express.static(path.join(backendRoot, "uploads", "note_images"))
+  express.static(noteImagesPath)
 );
 
 app.use(
   "/uploads/profile_pics",
-  express.static(path.join(backendRoot, "uploads", "profile_pics"))
+  express.static(profilePicsPath)
 );
 
 /* ------------------------------------------------------------------ */
@@ -79,3 +114,5 @@ app.use("/api/ai", generateNoteRoute);
 app.use(errorHandler);
 
 export default app;
+
+

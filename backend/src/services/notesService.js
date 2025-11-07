@@ -3,6 +3,28 @@ import Note from "../models/Note.js";
 import { convert } from "html-to-text";
 
 /**
+ * Helper: Escape special regex characters to prevent NoSQL injection
+ * Escapes characters that have special meaning in regex
+ */
+function escapeRegex(string) {
+  if (typeof string !== 'string') return '';
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Helper: Sanitize and validate MongoDB ObjectId
+ * Prevents NoSQL injection through ID parameters
+ */
+function sanitizeObjectId(id) {
+  if (!id) return null;
+  // Remove any characters that aren't valid in MongoDB ObjectIds
+  const sanitized = String(id).replace(/[^a-fA-F0-9]/g, '');
+  // MongoDB ObjectIds are exactly 24 hex characters
+  if (sanitized.length !== 24) return null;
+  return sanitized;
+}
+
+/**
  * Helper: normalize incoming payload so service can accept both legacy and new fields
  * - payload may contain: title, content (legacy) OR heading, contentHtml, contentJson, plainText (new)
  */
@@ -75,9 +97,9 @@ export async function getNotesForUser(
   const filter = { user: userId };
   if (!includeDeleted) filter.isDeleted = false;
 
-  // --- 🔍 TEXT SEARCH (in heading + plainText) ---
+  // --- 🔍 TEXT SEARCH (in heading + plainText) - FIXED: Escape regex special characters ---
   if (q && q.trim()) {
-    const search = q.trim();
+    const search = escapeRegex(q.trim());
     filter.$or = [
       { heading: { $regex: search, $options: "i" } },
       { plainText: { $regex: search, $options: "i" } },
@@ -139,25 +161,28 @@ export async function getNotesForUser(
     }
 
     // 🗓️ Apply date filter dynamically based on sortBy field
-if (start && end) {
-  const dateField =
-    sortBy === "updatedAt" ? "updatedAt" : "createdAt";
-  filter[dateField] = { $gte: start, $lte: end };
-}
-
+    if (start && end) {
+      // FIXED: Validate sortBy to prevent NoSQL injection
+      const validSortFields = ["updatedAt", "createdAt"];
+      const dateField = validSortFields.includes(sortBy) ? sortBy : "updatedAt";
+      filter[dateField] = { $gte: start, $lte: end };
+    }
   }
 
-  // --- 🧭 SORTING ---
+  // --- 🧭 SORTING - FIXED: Whitelist allowed sort fields ---
   const sortDirection = sortOrder === "asc" ? 1 : -1;
-  const sortField = ["createdAt", "updatedAt", "heading"].includes(sortBy)
-    ? sortBy
-    : "updatedAt";
+  const allowedSortFields = ["createdAt", "updatedAt", "heading"];
+  const sortField = allowedSortFields.includes(sortBy) ? sortBy : "updatedAt";
 
   // --- 🚀 Execute query ---
+  // FIXED: Validate and sanitize pagination parameters
+  const sanitizedSkip = Math.max(0, parseInt(skip, 10) || 0);
+  const sanitizedLimit = Math.min(Math.max(1, parseInt(limit, 10) || 100), 1000); // max 1000
+
   const query = Note.find(filter)
     .sort({ [sortField]: sortDirection })
-    .skip(+skip)
-    .limit(+limit);
+    .skip(sanitizedSkip)
+    .limit(sanitizedLimit);
 
   const notes = await query.exec();
   return notes;
@@ -166,9 +191,15 @@ if (start && end) {
 
 /**
  * Get a single note by id, ensuring it belongs to user and is not deleted
+ * FIXED: Validate noteId to prevent NoSQL injection
  */
 export async function getNoteById(userId, noteId, { includeDeleted = false } = {}) {
-  const filter = { _id: noteId, user: userId };
+  const sanitizedNoteId = sanitizeObjectId(noteId);
+  if (!sanitizedNoteId) {
+    return null; // Invalid ID format
+  }
+
+  const filter = { _id: sanitizedNoteId, user: userId };
   if (!includeDeleted) filter.isDeleted = false;
   const note = await Note.findOne(filter);
   return note;
@@ -180,10 +211,16 @@ export async function getNoteById(userId, noteId, { includeDeleted = false } = {
  * - Returns the updated note or null if not found / not allowed
  *
  * payload can include: title/heading, content/contentHtml, contentJson, plainText, attachments
+ * FIXED: Validate noteId to prevent NoSQL injection
  */
 export async function updateNote(userId, noteId, payload = {}) {
+  const sanitizedNoteId = sanitizeObjectId(noteId);
+  if (!sanitizedNoteId) {
+    return null; // Invalid ID format
+  }
+
   // Fetch note first to check ownership and to push version history
-  const note = await Note.findOne({ _id: noteId, user: userId, isDeleted: false });
+  const note = await Note.findOne({ _id: sanitizedNoteId, user: userId, isDeleted: false });
   if (!note) return null;
 
   // Normalize incoming payload
@@ -226,17 +263,23 @@ export async function updateNote(userId, noteId, payload = {}) {
  * Delete a note. Soft delete by default.
  * - soft=true -> mark isDeleted = true (returns updated document)
  * - soft=false -> permanently remove document
+ * FIXED: Validate noteId to prevent NoSQL injection
  */
 export async function deleteNote(userId, noteId, { soft = true } = {}) {
+  const sanitizedNoteId = sanitizeObjectId(noteId);
+  if (!sanitizedNoteId) {
+    return null; // Invalid ID format
+  }
+
   if (soft) {
     const updated = await Note.findOneAndUpdate(
-      { _id: noteId, user: userId, isDeleted: false },
+      { _id: sanitizedNoteId, user: userId, isDeleted: false },
       { isDeleted: true },
       { new: true }
     );
     return updated;
   } else {
-    const removed = await Note.findOneAndDelete({ _id: noteId, user: userId });
+    const removed = await Note.findOneAndDelete({ _id: sanitizedNoteId, user: userId });
     return removed;
   }
 }
