@@ -33,32 +33,201 @@
   overflow: hidden;
 }
 
-/* Rich text editor styles */
-.quill-editor .ql-container {
-  border-bottom-left-radius: 0.75rem;
-  border-bottom-right-radius: 0.75rem;
-  border: none;
+/* ------------------------------ */
+/* 🔥 Modern Rich Text Editor Look */
+/* ------------------------------ */
+
+.quill-editor {
+  border-radius: 16px;
+  background-color: #1e1e2f;
+  color: #f1f1f1;
+  font-family: 'Inter', sans-serif;
+  padding: 10px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
-.quill-editor .ql-toolbar {
-  border-top-left-radius: 0.75rem;
-  border-top-right-radius: 0.75rem;
+.ql-toolbar.ql-snow {
+  background: #2b2b3d;
   border: none;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  border-radius: 16px 16px 0 0;
+  padding: 8px 12px;
+  color: white;
 }
 
-.quill-editor .ql-editor {
-  min-height: 200px;
+.ql-toolbar button {
+  color: #fff !important;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.ql-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+
+/* ✅ Fix invisible toolbar icons */
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: #fff !important;
+}
+.ql-toolbar.ql-snow .ql-fill {
+  fill: #fff !important;
+}
+.ql-toolbar.ql-snow .ql-picker {
+  color: #fff !important;
+}
+.ql-toolbar.ql-snow .ql-picker-options {
+  background: #2b2b3d !important;
+  border: 1px solid #444 !important;
+}
+.ql-toolbar.ql-snow .ql-picker-item:hover,
+.ql-toolbar.ql-snow .ql-picker-label:hover {
+  color: #f0f0f0 !important;
+}
+
+/* Optional – Better hover feedback */
+.ql-toolbar button:hover .ql-stroke {
+  stroke: #a855f7 !important;
+}
+.ql-toolbar button:hover .ql-fill {
+  fill: #a855f7 !important;
+}
+
+/* -------------------------
+   Make active toolbar controls match hover color
+   ------------------------- */
+
+/* Use the same bluish background + color as your hover state */
+.ql-snow .ql-toolbar button:hover,
+.ql-snow .ql-toolbar button.ql-active {
+  color: #c4b5fd; /* light indigo/purple text color */
+  background: rgba(167,139,250,0.12); /* subtle indigo/fuchsia tint */
+  border-color: rgba(167,139,250,0.25);
+  box-shadow: none;
+}
+
+/* Ensure svg icons follow color (stroke/fill) so they visibly change */
+.ql-snow .ql-toolbar button svg {
+  stroke: currentColor;
+  fill: currentColor; /* icons that use fill will pick it up */
+}
+
+/* For font/size pickers: selected item / active label */
+.ql-snow .ql-picker.ql-font .ql-picker-item.ql-selected,
+.ql-snow .ql-picker.ql-font .ql-picker-label.ql-active,
+.ql-snow .ql-picker.ql-size .ql-picker-item.ql-selected,
+.ql-snow .ql-picker.ql-size .ql-picker-label.ql-active {
+  color: #c4b5fd;
+  background: rgba(167,139,250,0.08);
+}
+
+/* Make toolbar separators and groups keep contrast when active */
+.ql-snow .ql-toolbar .ql-formats button.ql-active,
+.ql-snow .ql-toolbar .ql-formats .ql-active {
+  border-radius: 8px;
+}
+
+/* If you want the icon to get a stronger ring when active (optional) */
+.ql-snow .ql-toolbar button.ql-active {
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.08);
+}
+
+/* Keep the pickers' label consistent (so selected font shows same tone) */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value].ql-active::before,
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value].ql-active::before {
+  color: #c4b5fd;
+}
+
+/* ===== Additional overrides to ensure active icons get colored =====
+   The previous .ql-stroke / .ql-fill rules were stronger and kept icons white.
+   We now explicitly color the stroke/fill of active buttons/pickers with !important.
+   This fixes bold/italic/underline not changing color when active. */
+.ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-fill {
+  stroke: #c4b5fd !important;
+  fill: #c4b5fd !important;
+  color: #c4b5fd !important;
+}
+
+/* Some controls use nested <svg> without .ql-stroke/.ql-fill classes - cover them too */
+.ql-snow .ql-toolbar button.ql-active svg,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active svg,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected svg {
+  stroke: currentColor !important;
+  fill: currentColor !important;
+  color: #c4b5fd !important;
+}
+
+/* Also ensure the button's color is set (keeps text/icons consistent) */
+.ql-snow .ql-toolbar button.ql-active {
+  color: #c4b5fd !important;
+}
+
+/* Ensure focus/pressed states also show the same color */
+.ql-snow .ql-toolbar button[aria-pressed="true"],
+.ql-snow .ql-toolbar button:focus,
+.ql-snow .ql-toolbar button:active {
+  color: #c4b5fd !important;
+}
+.ql-snow .ql-toolbar button[aria-pressed="true"] .ql-stroke,
+.ql-snow .ql-toolbar button:focus .ql-stroke,
+.ql-snow .ql-toolbar button:active .ql-stroke {
+  stroke: #c4b5fd !important;
+}
+.ql-snow .ql-toolbar button[aria-pressed="true"] .ql-fill,
+.ql-snow .ql-toolbar button:focus .ql-fill,
+.ql-snow .ql-toolbar button:active .ql-fill {
+  fill: #c4b5fd !important;
+}
+
+/* If you use icon fonts or other nested elements, ensure they pick up text color */
+.ql-snow .ql-toolbar button.ql-active * {
+  color: inherit !important;
+}
+
+/* End of active-state overrides */
+
+.ql-container.ql-snow {
+  border: none !important;
+  background: #24243e;
+  color: #f1f1f1;
+  border-radius: 0 0 16px 16px;
+  padding: 1.2rem;
+  min-height: 400px;
   font-size: 16px;
   line-height: 1.6;
-  color: #1f2937;
-  padding: 1rem;
 }
 
-.quill-editor .ql-editor.ql-blank::before {
-  color: #9ca3af;
-  font-style: normal;
+.ql-editor {
+  color: #f8f8f8;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+}
+
+.ql-editor p {
+  margin-bottom: 0.8em;
+}
+
+.ql-editor a {
+  color: #a855f7;
+  text-decoration: underline;
+}
+
+/* Placeholder */
+.ql-editor.ql-blank::before {
+  color: #aaa !important;
+  font-style: italic;
+}
+
+/* Scrollbar */
+.ql-editor::-webkit-scrollbar {
+  width: 6px;
+}
+.ql-editor::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 6px;
 }
 
 /* Font size dropdown styling - show numbers but keep pixel functionality */
@@ -67,74 +236,31 @@
   content: attr(data-value);
 }
 
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="8px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="8px"]::before {
-  content: "8";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="10px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="10px"]::before {
-  content: "10";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="12px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="12px"]::before {
-  content: "12";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="14px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="14px"]::before {
-  content: "14";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="18px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="18px"]::before {
-  content: "18";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="24px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="24px"]::before {
-  content: "24";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="36px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="36px"]::before {
-  content: "36";
-}
-
-.quill-editor .ql-toolbar .ql-size .ql-picker-label[data-value="48px"]::before,
-.quill-editor .ql-toolbar .ql-size .ql-picker-item[data-value="48px"]::before {
-  content: "48";
-}
-
-/* Editor mode styles (light theme) */
+/* Editor headings */
 .ql-editor h1 {
   font-size: 2rem;
   font-weight: bold;
   margin: 1rem 0 0.5rem 0;
-  color: #1f2937;
+  color: #f9fafb;
 }
 
 .ql-editor h2 {
   font-size: 1.5rem;
   font-weight: bold;
   margin: 0.875rem 0 0.5rem 0;
-  color: #1f2937;
+  color: #f9fafb;
 }
 
 .ql-editor h3 {
   font-size: 1.25rem;
   font-weight: bold;
   margin: 0.75rem 0 0.5rem 0;
-  color: #1f2937;
+  color: #f9fafb;
 }
 
-.ql-editor p {
-  margin: 0.5rem 0;
-  color: #1f2937;
-}
-
-.ql-editor ul, .ql-editor ol {
+/* Rich text body */
+.ql-editor ul,
+.ql-editor ol {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
 }
@@ -142,42 +268,21 @@
 .ql-editor ul {
   list-style-type: disc !important;
 }
-
 .ql-editor ol {
   list-style-type: decimal !important;
 }
 
-.ql-editor li {
-  margin: 0.25rem 0;
-  color: #1f2937;
-}
-
-.ql-editor strong {
-  font-weight: bold;
-}
-
-.ql-editor em {
-  font-style: italic;
-}
-
-.ql-editor u {
-  text-decoration: underline !important;
-}
-
-.ql-editor s {
-  text-decoration: line-through !important;
-}
-
 .ql-editor blockquote {
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid #4b5563;
   padding-left: 1rem;
   margin: 1rem 0;
   font-style: italic;
-  color: #6b7280;
+  color: #9ca3af;
 }
 
 .ql-editor code {
-  background-color: #f3f4f6;
+  background-color: #374151;
+  color: #f9fafb;
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-family: 'Courier New', monospace;
@@ -185,7 +290,7 @@
 }
 
 .ql-editor pre {
-  background-color: #f3f4f6;
+  background-color: #374151;
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
@@ -197,70 +302,25 @@
   padding: 0;
 }
 
-/* Display mode styles (dark theme) */
+/* --------------------------- */
+/* 🌙 Display Mode (Dark Theme) */
+/* --------------------------- */
+
 .rich-text-content {
   color: #e5e7eb;
 }
 
-.rich-text-content h1 {
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3 {
   color: #f9fafb;
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 1rem 0 0.5rem 0;
-}
-
-.rich-text-content h2 {
-  color: #f9fafb;
-  font-size: 1.5rem;
   font-weight: bold;
   margin: 0.875rem 0 0.5rem 0;
 }
 
-.rich-text-content h3 {
-  color: #f9fafb;
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin: 0.75rem 0 0.5rem 0;
-}
-
-.rich-text-content p {
-  margin: 0.5rem 0;
-  color: #e5e7eb;
-}
-
-.rich-text-content ul, .rich-text-content ol {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.rich-text-content ul {
-  list-style-type: disc !important;
-}
-
-.rich-text-content ol {
-  list-style-type: decimal !important;
-}
-
+.rich-text-content p,
 .rich-text-content li {
-  margin: 0.25rem 0;
   color: #e5e7eb;
-}
-
-.rich-text-content strong {
-  font-weight: bold;
-  color: #f9fafb;
-}
-
-.rich-text-content em {
-  font-style: italic;
-}
-
-.rich-text-content u {
-  text-decoration: underline !important;
-}
-
-.rich-text-content s {
-  text-decoration: line-through !important;
 }
 
 .rich-text-content blockquote {
@@ -271,56 +331,32 @@
   color: #9ca3af;
 }
 
-.rich-text-content code {
-  background-color: #374151;
-  color: #f9fafb;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
-}
-
-.rich-text-content pre {
-  background-color: #374151;
-  color: #f9fafb;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1rem 0;
-}
-
-.rich-text-content pre code {
-  background: none;
-  padding: 0;
-  color: #f9fafb;
-}
-
-/* Text alignment styles for rich text content */
+/* Text alignment styles */
 .rich-text-content .ql-align-left,
 .rich-text-content p.ql-align-left,
 .rich-text-content div.ql-align-left {
   text-align: left;
 }
-
 .rich-text-content .ql-align-center,
 .rich-text-content p.ql-align-center,
 .rich-text-content div.ql-align-center {
   text-align: center;
 }
-
 .rich-text-content .ql-align-right,
 .rich-text-content p.ql-align-right,
 .rich-text-content div.ql-align-right {
   text-align: right;
 }
-
 .rich-text-content .ql-align-justify,
 .rich-text-content p.ql-align-justify,
 .rich-text-content div.ql-align-justify {
   text-align: justify;
 }
 
-/* Image modal styles */
+/* ---------------------- */
+/* 🖼️ Image Modal Styling */
+/* ---------------------- */
+
 .image-modal {
   position: fixed;
   top: 0;
@@ -365,19 +401,17 @@
 
 /* Hide scrollbars but keep functionality */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
 }
 
 /* Ensure no horizontal overflow */
 * {
   box-sizing: border-box;
 }
-
 body {
   overflow-x: hidden;
 }
@@ -387,15 +421,12 @@ body {
   .image-carousel-container {
     padding: 0.75rem;
   }
-  
   .image-carousel-main {
     aspect-ratio: 16/9;
   }
-  
   .image-carousel-thumbnails {
     gap: 0.5rem;
   }
-  
   .image-carousel-thumbnail {
     width: 3rem;
     height: 3rem;
