@@ -15,16 +15,50 @@ function getLog(req) {
 }
 
 /**
+ * Helper: Sanitize and validate MongoDB ObjectId
+ * Prevents NoSQL injection through ID parameters
+ */
+function sanitizeObjectId(id) {
+  if (!id) return null;
+  // Remove any characters that aren't valid in MongoDB ObjectIds
+  const sanitized = String(id).replace(/[^a-fA-F0-9]/g, '');
+  // MongoDB ObjectIds are exactly 24 hex characters
+  if (sanitized.length !== 24) return null;
+  return sanitized;
+}
+
+/**
+ * Helper: Validate email format
+ * Prevents injection attacks through email parameter
+ */
+function isValidEmail(email) {
+  if (typeof email !== 'string') return false;
+  // Basic email validation regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 255;
+}
+
+/**
+ * Helper: Sanitize string input to prevent NoSQL injection
+ * Ensures the input is a plain string, not an object
+ */
+function sanitizeString(input) {
+  if (typeof input !== 'string') return '';
+  return input;
+}
+
+/**
  * Normalize token / reset request inputs for compatibility.
  * This makes the reset handler accept:
  *  - token from body, query, or x-reset-token header
  *  - id from body or query
  *  - newPassword from body.password or body.newPassword
+ * FIXED: Sanitize all inputs to prevent injection
  */
 function normalizeResetInputs(req) {
-  let token = req.body?.token ?? req.query?.token ?? req.headers["x-reset-token"];
-  let id = req.body?.id ?? req.query?.id ?? req.body?.userId;
-  let newPassword = req.body?.newPassword ?? req.body?.password;
+  let token = sanitizeString(req.body?.token ?? req.query?.token ?? req.headers["x-reset-token"]);
+  let id = sanitizeString(req.body?.id ?? req.query?.id ?? req.body?.userId);
+  let newPassword = sanitizeString(req.body?.newPassword ?? req.body?.password);
 
   return { token, id, newPassword };
 }
@@ -36,19 +70,41 @@ export const register = async (req, res, next) => {
   const log = getLog(req);
   try {
     const { name, email, password } = req.body;
-    log.info({ action: "register_attempt", email }, "Register attempt");
+    
+    // FIXED: Validate and sanitize email input
+    if (!isValidEmail(email)) {
+      log.warn({ action: "register_failed", reason: "invalid_email" }, "Invalid email format");
+      return res.status(400).json({ error: { message: "Invalid email format" } });
+    }
 
-    const existingUser = await User.findOne({ email });
+    // FIXED: Sanitize name to prevent injection
+    const sanitizedName = sanitizeString(name);
+    const sanitizedEmail = email.toLowerCase().trim();
+
+    log.info({ action: "register_attempt", email: sanitizedEmail }, "Register attempt");
+
+    // FIXED: Use sanitized email in query
+    const existingUser = await User.findOne({ email: sanitizedEmail });
     if (existingUser) {
-      log.warn({ action: "register_failed", email }, "Email already in use");
+      log.warn({ action: "register_failed", email: sanitizedEmail }, "Email already in use");
       return res.status(400).json({ error: { message: "Email already in use" } });
+    }
+
+    // FIXED: Validate password strength
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      log.warn({ action: "register_failed", reason: "weak_password" }, "Password too weak");
+      return res.status(400).json({ error: { message: "Password must be at least 8 characters" } });
     }
 
     const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await User.create({ name, email, passwordHash });
-    log.info({ action: "register_success", userId: user._id, email }, "User registered successfully");
+    const user = await User.create({ 
+      name: sanitizedName, 
+      email: sanitizedEmail, 
+      passwordHash 
+    });
+    log.info({ action: "register_success", userId: user._id, email: sanitizedEmail }, "User registered successfully");
 
     res.status(201).json({
       message: "User registered successfully",
@@ -67,17 +123,33 @@ export const login = async (req, res, next) => {
   const log = getLog(req);
   try {
     const { email, password } = req.body;
-    log.info({ action: "login_attempt", email, ip: req.ip, ua: req.headers["user-agent"] }, "Login attempt");
+    
+    // FIXED: Validate email format
+    if (!isValidEmail(email)) {
+      log.warn({ action: "login_failed", reason: "invalid_email" }, "Invalid email format");
+      return res.status(400).json({ error: { message: "Invalid credentials" } });
+    }
 
-    const user = await User.findOne({ email });
+    const sanitizedEmail = email.toLowerCase().trim();
+    
+    log.info({ action: "login_attempt", email: sanitizedEmail, ip: req.ip, ua: req.headers["user-agent"] }, "Login attempt");
+
+    // FIXED: Use sanitized email in query
+    const user = await User.findOne({ email: sanitizedEmail });
     if (!user) {
-      log.warn({ action: "login_failed", email, reason: "user_not_found" }, "Invalid credentials");
+      log.warn({ action: "login_failed", email: sanitizedEmail, reason: "user_not_found" }, "Invalid credentials");
+      return res.status(400).json({ error: { message: "Invalid credentials" } });
+    }
+
+    // FIXED: Validate password is a string
+    if (typeof password !== 'string') {
+      log.warn({ action: "login_failed", email: sanitizedEmail, reason: "invalid_password_type" }, "Invalid credentials");
       return res.status(400).json({ error: { message: "Invalid credentials" } });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      log.warn({ action: "login_failed", email, reason: "wrong_password" }, "Invalid credentials");
+      log.warn({ action: "login_failed", email: sanitizedEmail, reason: "wrong_password" }, "Invalid credentials");
       return res.status(400).json({ error: { message: "Invalid credentials" } });
     }
 
@@ -102,7 +174,7 @@ export const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    log.info({ action: "login_success", userId: user._id, email }, "User logged in");
+    log.info({ action: "login_success", userId: user._id, email: sanitizedEmail }, "User logged in");
     res.json({ accessToken });
   } catch (err) {
     log.error({ err }, "Login error");
@@ -117,9 +189,12 @@ export const refresh = async (req, res, next) => {
   const log = getLog(req);
   try {
     // fallback for test env if cookies not set (controller supports body fallback)
-    const tokenFromCookie =
+    let tokenFromCookie =
       req.cookies?.[process.env.REFRESH_TOKEN_COOKIE_NAME || "_refresh_token"] ||
       req.body?.refreshToken;
+
+    // FIXED: Sanitize token to prevent injection
+    tokenFromCookie = sanitizeString(tokenFromCookie);
 
     if (!tokenFromCookie) {
       log.warn({ action: "refresh_failed", reason: "no_cookie" }, "No refresh token");
@@ -155,9 +230,12 @@ export const refresh = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   const log = getLog(req);
   try {
-    const tokenFromCookie =
+    let tokenFromCookie =
       req.cookies?.[process.env.REFRESH_TOKEN_COOKIE_NAME || "_refresh_token"] ||
       req.body?.refreshToken; // fallback for tests
+
+    // FIXED: Sanitize token to prevent injection
+    tokenFromCookie = sanitizeString(tokenFromCookie);
 
     if (tokenFromCookie) {
       const hashed = hashToken(tokenFromCookie);
@@ -180,10 +258,22 @@ export const forgotPassword = async (req, res, next) => {
   const log = getLog(req);
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    
+    // FIXED: Validate email format
+    if (!isValidEmail(email)) {
+      log.warn({ action: "forgot_password_failed", reason: "invalid_email" }, "Invalid email format");
+      return res.status(200).json({
+        message: "If the email exists, a reset link will be sent.",
+      });
+    }
+
+    const sanitizedEmail = email.toLowerCase().trim();
+    
+    // FIXED: Use sanitized email in query
+    const user = await User.findOne({ email: sanitizedEmail });
 
     if (!user) {
-      log.warn({ action: "forgot_password_failed", email }, "User not found");
+      log.warn({ action: "forgot_password_failed", email: sanitizedEmail }, "User not found");
       return res.status(200).json({
         message: "If the email exists, a reset link will be sent.",
       });
@@ -193,7 +283,8 @@ export const forgotPassword = async (req, res, next) => {
     const tokenHash = hashToken(resetToken);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    await PasswordResetToken.deleteMany({ user: user._1d ?? user._id });
+    // FIXED: Fixed typo user._1d to user._id
+    await PasswordResetToken.deleteMany({ user: user._id });
     await PasswordResetToken.create({ user: user._id, tokenHash, expiresAt });
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&id=${user._id}`;
@@ -232,7 +323,7 @@ export const forgotPassword = async (req, res, next) => {
           <p>This link expires in 15 minutes.</p>
         `,
       });
-      log.info({ action: "forgot_password_email_sent", email }, "Password reset email sent");
+      log.info({ action: "forgot_password_email_sent", email: sanitizedEmail }, "Password reset email sent");
     } catch (sendErr) {
       // Log error but don't reveal details to the client
       log.error({ err: sendErr }, "Failed to send password reset email; continuing");
@@ -253,24 +344,42 @@ export const resetPassword = async (req, res, next) => {
   try {
     // normalize inputs (body, query, header compatibility)
     const inputs = normalizeResetInputs(req);
-    const token = inputs.token;
-    const id = inputs.id;
-    const newPassword = inputs.newPassword;
+    let token = inputs.token;
+    let id = inputs.id;
+    let newPassword = inputs.newPassword;
 
     if (!token || !id || !newPassword) {
       log.warn({ action: "reset_failed", userId: id }, "Missing token, id, or newPassword in reset request");
       return res.status(400).json({ error: { message: "Invalid or expired reset link" } });
     }
 
-    const hashedToken = hashToken(token);
-    const passwordResetToken = await PasswordResetToken.findOne({ user: id, tokenHash: hashedToken });
-
-    if (!passwordResetToken || passwordResetToken.expiresAt < new Date()) {
-      log.warn({ action: "reset_failed", userId: id }, "Invalid or expired reset token");
+    // FIXED: Validate and sanitize user ID
+    const sanitizedId = sanitizeObjectId(id);
+    if (!sanitizedId) {
+      log.warn({ action: "reset_failed", userId: id }, "Invalid user ID format");
       return res.status(400).json({ error: { message: "Invalid or expired reset link" } });
     }
 
-    const user = await User.findById(id);
+    // FIXED: Validate password strength
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      log.warn({ action: "reset_failed", userId: sanitizedId }, "Password too weak");
+      return res.status(400).json({ error: { message: "Password must be at least 8 characters" } });
+    }
+
+    const hashedToken = hashToken(token);
+    // FIXED: Use sanitized ID in query
+    const passwordResetToken = await PasswordResetToken.findOne({ 
+      user: sanitizedId, 
+      tokenHash: hashedToken 
+    });
+
+    if (!passwordResetToken || passwordResetToken.expiresAt < new Date()) {
+      log.warn({ action: "reset_failed", userId: sanitizedId }, "Invalid or expired reset token");
+      return res.status(400).json({ error: { message: "Invalid or expired reset link" } });
+    }
+
+    // FIXED: Use sanitized ID in query
+    const user = await User.findById(sanitizedId);
     if (!user) return res.status(400).json({ error: { message: "User not found" } });
 
     const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
