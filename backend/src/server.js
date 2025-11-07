@@ -9,6 +9,7 @@ import app from "./app.js";
 import logger from "./logger.js";
 import { registerProcessHandlers } from "./middlewares/processHandler.js";
 
+// ✅ Load .env FIRST (this loads from backend/.env by default)
 dotenv.config();
 
 // Ensure uploads directory exists at project root (where app.js serves from)
@@ -33,6 +34,13 @@ registerProcessHandlers();
     const port = process.env.PORT || 5000;
     app.listen(port, () => {
       logger.info({ port }, `Server running on port ${port}`);
+      
+      // ✅ Log environment variables for debugging
+      console.log("\n🔍 Environment Check:");
+      console.log("📁 FRONTEND_URL:", process.env.FRONTEND_URL || "not set");
+      console.log("🔑 HF_API_KEY exists:", !!process.env.HUGGINGFACE_API_KEY);
+      console.log("🔑 HF_API_KEY prefix:", process.env.HUGGINGFACE_API_KEY?.substring(0, 7) || "MISSING");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     });
   } catch (err) {
     logger.fatal({ err }, "Failed to start server");
