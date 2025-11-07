@@ -34,7 +34,7 @@ function sanitizeObjectId(id) {
 function isValidEmail(email) {
   if (typeof email !== 'string') return false;
   // Basic email validation regex
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email) && email.length <= 255;
 }
 
@@ -48,13 +48,33 @@ function sanitizeString(input) {
 }
 
 /**
- * Normalize token / reset request inputs for compatibility.
- * This makes the reset handler accept:
- *  - token from body, query, or x-reset-token header
- *  - id from body or query
- *  - newPassword from body.password or body.newPassword
- * FIXED: Sanitize all inputs to prevent injection
+ * Helper: Sanitize user agent string
+ * Limits length and ensures it's a string
  */
+function sanitizeUserAgent(userAgent) {
+  if (typeof userAgent !== 'string') return 'unknown';
+  // Limit to reasonable length to prevent DoS
+  return userAgent.substring(0, 500);
+}
+
+/**
+ * Helper: Sanitize IP address
+ * Validates and normalizes IP format
+ */
+function sanitizeIp(ip) {
+  if (typeof ip !== 'string') return 'unknown';
+  // Basic IP validation (IPv4 and IPv6)
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+  
+  if (ipv4Regex.test(ip) || ipv6Regex.test(ip)) {
+    return ip;
+  }
+  // Fallback for unknown format
+  return 'unknown';
+}
+
+
 function normalizeResetInputs(req) {
   let token = sanitizeString(req.body?.token ?? req.query?.token ?? req.headers["x-reset-token"]);
   let id = sanitizeString(req.body?.id ?? req.query?.id ?? req.body?.userId);
@@ -99,11 +119,18 @@ export const register = async (req, res, next) => {
     const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await User.create({ 
-      name: sanitizedName, 
-      email: sanitizedEmail, 
-      passwordHash 
-    });
+    // SECURITY FIX: Explicitly construct safe object for database insertion
+    // This prevents any potential prototype pollution or object injection
+    const safeUserData = {
+      name: sanitizedName,
+      email: sanitizedEmail,
+      passwordHash: passwordHash
+    };
+
+    // SECURITY FIX: Use Object.create(null) to prevent prototype pollution
+    const userDataToCreate = Object.assign(Object.create(null), safeUserData);
+    
+    const user = await User.create(userDataToCreate);
     log.info({ action: "register_success", userId: user._id, email: sanitizedEmail }, "User registered successfully");
 
     res.status(201).json({
@@ -158,13 +185,23 @@ export const login = async (req, res, next) => {
     const refreshTokenHash = hashToken(refreshTokenString);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await RefreshToken.create({
+    // SECURITY FIX: Sanitize all user-controlled data before database insertion
+    const sanitizedUserAgent = sanitizeUserAgent(req.headers["user-agent"] || '');
+    const sanitizedIp = sanitizeIp(req.ip || '');
+
+    // SECURITY FIX: Explicitly construct safe object for database insertion
+    const safeTokenData = {
       user: user._id,
       tokenHash: refreshTokenHash,
-      expiresAt,
-      userAgent: req.headers["user-agent"],
-      ip: req.ip,
-    });
+      expiresAt: expiresAt,
+      userAgent: sanitizedUserAgent,
+      ip: sanitizedIp
+    };
+
+    // SECURITY FIX: Use Object.create(null) to prevent prototype pollution
+    const tokenDataToCreate = Object.assign(Object.create(null), safeTokenData);
+
+    await RefreshToken.create(tokenDataToCreate);
 
     // Ensure cookie always set in test mode as well
     res.cookie(process.env.REFRESH_TOKEN_COOKIE_NAME || "_refresh_token", refreshTokenString, {
